@@ -7,7 +7,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "CrowdfundMe - Decentralized Crowdfunding",
   description: "Fund the future with blockchain-powered crowdfunding on Base",
-    generator: 'v0.dev'
+  icons: {
+    icon: "/SpringDev.png",
+  },
+  themeColor: "#ffffff",
 }
 
 export default function RootLayout({ children }) {
