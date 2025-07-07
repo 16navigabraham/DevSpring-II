@@ -4,35 +4,31 @@ import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { getProvider, switchToBase } from "@/lib/web3"
-import { Wallet, AlertCircle, CheckCircle } from "lucide-react"
+import { switchToBase } from "@/lib/web3"
+import { Wallet, AlertCircle, CheckCircle, ExternalLink } from "lucide-react"
 
-export default function WalletConnection({ onWalletConnected }) {
-  const { authenticated, user } = usePrivy()
+export function WalletConnection({ onWalletConnected }) {
+  const { ready, authenticated, user, connectWallet } = usePrivy()
   const [walletAddress, setWalletAddress] = useState(null)
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (authenticated) {
+    if (ready && authenticated && user?.wallet) {
       checkWalletConnection()
       checkNetwork()
     }
-  }, [authenticated])
+  }, [ready, authenticated, user])
 
   const checkWalletConnection = async () => {
-    if (!authenticated || !window.ethereum) return
+    if (!authenticated || !user?.wallet) return
 
     try {
       setError(null)
-      const provider = getProvider()
-      if (provider) {
-        const signer = await provider.getSigner()
-        const address = await signer.getAddress()
-        setWalletAddress(address)
-        onWalletConnected?.(address)
-      }
+      const address = user.wallet.address
+      setWalletAddress(address)
+      onWalletConnected?.(address)
     } catch (error) {
       console.error("Error checking wallet connection:", error)
       setError("Failed to connect wallet")
@@ -50,15 +46,14 @@ export default function WalletConnection({ onWalletConnected }) {
     }
   }
 
-  const connectWallet = async () => {
+  const handleConnectWallet = async () => {
     if (!authenticated) return
 
     setIsConnecting(true)
     setError(null)
 
     try {
-      await window.ethereum.request({ method: "eth_requestAccounts" })
-      await checkWalletConnection()
+      await connectWallet()
       await checkNetwork()
     } catch (error) {
       console.error("Error connecting wallet:", error)
@@ -79,7 +74,7 @@ export default function WalletConnection({ onWalletConnected }) {
     }
   }
 
-  if (!authenticated) {
+  if (!ready || !authenticated) {
     return null
   }
 
@@ -92,8 +87,18 @@ export default function WalletConnection({ onWalletConnected }) {
             <div>
               <div className="font-medium text-white">Wallet Connection</div>
               {walletAddress ? (
-                <div className="text-sm text-blue-300">
-                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                <div className="text-sm text-blue-300 flex items-center space-x-2">
+                  <span>
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                  </span>
+                  <a
+                    href={`https://basescan.org/address/${walletAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               ) : (
                 <div className="text-sm text-blue-300">Not connected</div>
@@ -104,7 +109,7 @@ export default function WalletConnection({ onWalletConnected }) {
 
           <div className="flex items-center space-x-2">
             {!walletAddress ? (
-              <Button onClick={connectWallet} disabled={isConnecting} className="btn-primary">
+              <Button onClick={handleConnectWallet} disabled={isConnecting} className="btn-primary">
                 {isConnecting ? "Connecting..." : "Connect Wallet"}
               </Button>
             ) : !isCorrectNetwork ? (

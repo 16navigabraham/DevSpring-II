@@ -1,23 +1,144 @@
 "use client"
 
-import { useState } from "react"
+import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Rocket, Users, TrendingUp } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Sparkles, Rocket, Users, TrendingUp, Wallet, ArrowRight } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { getAllCampaigns } from "@/lib/web3"
+import { ClientOnly } from "@/components/ClientOnly"
+
+function AuthenticatedContent() {
+  const { ready, authenticated, login } = usePrivy()
+  const [stats, setStats] = useState({
+    totalCampaigns: 0,
+    totalRaised: "0",
+    activeCampaigns: 0,
+  })
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const campaigns = await getAllCampaigns()
+        const totalRaised = campaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
+        const activeCampaigns = campaigns.filter((c) => c.isActive).length
+
+        setStats({
+          totalCampaigns: campaigns.length,
+          totalRaised: totalRaised.toFixed(2),
+          activeCampaigns,
+        })
+      } catch (error) {
+        console.error("Error loading stats:", error)
+      }
+    }
+
+    if (ready) {
+      loadStats()
+    }
+  }, [ready])
+
+  if (!ready) {
+    return (
+      <div className="flex items-center space-x-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+        <span className="text-blue-200">Loading...</span>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {authenticated ? (
+        <Link href="/campaigns">
+          <Button className="btn-secondary">
+            <Users className="w-4 h-4 mr-2" />
+            Dashboard
+          </Button>
+        </Link>
+      ) : (
+        <Button onClick={login} className="btn-primary">
+          <Wallet className="w-4 h-4 mr-2" />
+          Connect Wallet
+        </Button>
+      )}
+    </>
+  )
+}
+
+function ActionButtons() {
+  const { ready, authenticated, login } = usePrivy()
+
+  if (!ready) {
+    return (
+      <div className="flex justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+      {authenticated ? (
+        <>
+          <Link href="/create">
+            <Button className="btn-primary group relative overflow-hidden px-8 py-4 text-lg font-semibold">
+              <span className="relative z-10 flex items-center">
+                <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
+                Create Campaign
+              </span>
+            </Button>
+          </Link>
+
+          <Link href="/campaigns">
+            <Button className="btn-secondary group px-8 py-4 text-lg font-semibold">
+              <span className="flex items-center">
+                <Users className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Explore Campaigns
+              </span>
+            </Button>
+          </Link>
+        </>
+      ) : (
+        <Button onClick={login} className="btn-primary group relative overflow-hidden px-8 py-4 text-lg font-semibold">
+          <span className="relative z-10 flex items-center">
+            <Wallet className="w-5 h-5 mr-2" />
+            Connect Wallet to Start
+            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </Button>
+      )}
+    </div>
+  )
+}
 
 export default function LandingPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [stats, setStats] = useState({
+    totalCampaigns: 0,
+    totalRaised: "0",
+    activeCampaigns: 0,
+  })
 
-  const handleAction = (route) => {
-    setError(null)
-    setIsLoading(true)
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const campaigns = await getAllCampaigns()
+        const totalRaised = campaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
+        const activeCampaigns = campaigns.filter((c) => c.isActive).length
 
-    // Simulate navigation
-    setTimeout(() => {
-      setIsLoading(false)
-      window.location.href = route
-    }, 1000)
-  }
+        setStats({
+          totalCampaigns: campaigns.length,
+          totalRaised: totalRaised.toFixed(2),
+          activeCampaigns,
+        })
+      } catch (error) {
+        console.error("Error loading stats:", error)
+      }
+    }
+
+    loadStats()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 relative overflow-hidden">
@@ -56,9 +177,9 @@ export default function LandingPage() {
             </h1>
           </div>
 
-          <div className="glass-card px-4 py-2 rounded-full">
-            <span className="text-sm text-blue-200">Demo Mode</span>
-          </div>
+          <ClientOnly fallback={<div className="w-32 h-10 bg-blue-500/20 rounded animate-pulse"></div>}>
+            <AuthenticatedContent />
+          </ClientOnly>
         </header>
 
         {/* Main Content */}
@@ -70,74 +191,73 @@ export default function LandingPage() {
                 Fund the Future
               </h2>
               <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Decentralized crowdfunding for innovative projects. Connect creators with supporters through the power
-                of blockchain technology.
+                Decentralized crowdfunding for verified builders. Connect creators with supporters through blockchain
+                technology on Base.
               </p>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <div className="glass-card p-6 rounded-2xl">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-white mb-1">10K+</div>
-                <div className="text-blue-200 text-sm">Active Users</div>
-              </div>
-              <div className="glass-card p-6 rounded-2xl">
-                <Rocket className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-white mb-1">500+</div>
-                <div className="text-blue-200 text-sm">Projects Funded</div>
-              </div>
-              <div className="glass-card p-6 rounded-2xl">
-                <TrendingUp className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-white mb-1">1.2M ETH</div>
-                <div className="text-blue-200 text-sm">Total Raised</div>
-              </div>
+              <Card className="glass-card border-blue-500/20">
+                <CardContent className="p-6 text-center">
+                  <Users className="w-8 h-8 text-blue-400 mx-auto mb-3" />
+                  <div className="text-2xl font-bold text-white mb-1">{stats.activeCampaigns}</div>
+                  <div className="text-blue-200 text-sm">Active Campaigns</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-blue-500/20">
+                <CardContent className="p-6 text-center">
+                  <Rocket className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+                  <div className="text-2xl font-bold text-white mb-1">{stats.totalCampaigns}</div>
+                  <div className="text-blue-200 text-sm">Total Projects</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-blue-500/20">
+                <CardContent className="p-6 text-center">
+                  <TrendingUp className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
+                  <div className="text-2xl font-bold text-white mb-1">{stats.totalRaised} ETH</div>
+                  <div className="text-blue-200 text-sm">Total Raised</div>
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-                <p className="text-red-400">{error}</p>
-              </div>
-            )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Button
-                onClick={() => handleAction("/create")}
-                disabled={isLoading}
-                className="btn-primary group relative overflow-hidden px-8 py-4 text-lg font-semibold"
-              >
-                <span className="relative z-10 flex items-center">
-                  <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
-                  {isLoading ? "Loading..." : "Create Campaign"}
-                </span>
-              </Button>
+            <ClientOnly fallback={<div className="w-64 h-12 bg-blue-500/20 rounded mx-auto animate-pulse"></div>}>
+              <ActionButtons />
+            </ClientOnly>
 
-              <Button
-                onClick={() => handleAction("/campaigns")}
-                disabled={isLoading}
-                className="btn-secondary group px-8 py-4 text-lg font-semibold"
-              >
-                <span className="flex items-center">
-                  <Users className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Explore Campaigns
-                </span>
-              </Button>
-            </div>
+            {/* Features */}
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <Card className="glass-card border-blue-500/20 p-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Builder Score Verification</h3>
+                  <p className="text-blue-200 text-sm">
+                    Only verified builders with proven track records can create campaigns, ensuring quality projects.
+                  </p>
+                </div>
+              </Card>
 
-            <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-blue-300 text-sm">
-                🚀 This is a demo of the CrowdfundMe dApp interface. In production, this would connect to Web3 wallets
-                and smart contracts on Base network.
-              </p>
+              <Card className="glass-card border-blue-500/20 p-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Transparent & Secure</h3>
+                  <p className="text-blue-200 text-sm">
+                    All transactions are on-chain and transparent. Smart contracts ensure funds are handled securely.
+                  </p>
+                </div>
+              </Card>
             </div>
           </div>
         </main>
 
         {/* Footer */}
         <footer className="p-6 text-center">
-          <p className="text-blue-300 text-sm">Powered by Ethereum • Built with ❤️ for the decentralized future</p>
+          <p className="text-blue-300 text-sm">Powered by Base • Built for the decentralized future</p>
         </footer>
       </div>
     </div>

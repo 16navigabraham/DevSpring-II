@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Rocket, Calendar, Target, FileText, Lightbulb, Users, TrendingUp, CheckCircle } from "lucide-react"
+import { ArrowLeft, Rocket, Calendar, Target, FileText, Users, CheckCircle, AlertCircle } from "lucide-react"
 import { FormField } from "@/components/FormField"
 import { validationRules, getValidationHints, getSuggestions } from "@/lib/validation"
+import { WalletConnection } from "@/components/WalletConnection"
+import { createCampaign } from "@/lib/web3"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function CreateCampaign() {
+  const { ready, authenticated, user } = usePrivy()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [isBuilderVerified, setIsBuilderVerified] = useState(false)
+  // COMMENTED OUT: Builder score verification
+  // const [isBuilderVerified, setIsBuilderVerified] = useState(false)
+  const [walletAddress, setWalletAddress] = useState(null)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -21,7 +33,15 @@ export default function CreateCampaign() {
   const [validationState, setValidationState] = useState({})
   const [formScore, setFormScore] = useState(0)
 
-  // Simulate form validation
+  useEffect(() => {
+    if (!ready) return
+    if (!authenticated) {
+      router.push("/")
+      return
+    }
+  }, [ready, authenticated, router])
+
+  // Update form validation
   const updateValidation = () => {
     const newValidationState = {}
     let score = 0
@@ -56,45 +76,89 @@ export default function CreateCampaign() {
     setTimeout(updateValidation, 100)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    // MODIFIED: Only require wallet connection, not builder verification
+    if (!walletAddress) return
+
     setIsLoading(true)
+    setError(null)
 
-    // Simulate campaign creation
-    setTimeout(() => {
+    try {
+      const campaignData = {
+        title: formData.title,
+        description: formData.description,
+        goal: formData.goal,
+        duration: Number.parseInt(formData.duration),
+        githubRepo: formData.githubRepo,
+        liveSiteUrl: formData.liveSiteUrl,
+        creator: walletAddress,
+      }
+
+      const result = await createCampaign(campaignData)
+
+      if (result) {
+        setSuccess(true)
+        setTimeout(() => {
+          router.push("/campaigns")
+        }, 2000)
+      }
+    } catch (error) {
+      console.error("Error creating campaign:", error)
+      setError(error.message || "Failed to create campaign")
+    } finally {
       setIsLoading(false)
-      alert("Campaign created successfully! (Demo mode)")
-    }, 2000)
+    }
   }
 
-  const handleVerifyBuilder = () => {
-    setIsBuilderVerified(true)
+  // MODIFIED: Only require form completion and wallet connection
+  const isFormValid = formScore === 100 && walletAddress
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
+      </div>
+    )
   }
 
-  const isFormValid = formScore === 100 && isBuilderVerified
+  if (!authenticated) {
+    return null
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
+        <Card className="glass-card border-emerald-500/20 max-w-md mx-auto">
+          <CardContent className="p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Campaign Created!</h2>
+            <p className="text-blue-200 mb-4">Your campaign has been successfully deployed to the blockchain.</p>
+            <p className="text-sm text-blue-300">Redirecting to campaigns page...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button
-            onClick={() => (window.location.href = "/")}
-            variant="ghost"
-            className="text-blue-200 hover:text-white hover:bg-blue-800/20"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
+          <Link href="/">
+            <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
 
-          <Button
-            onClick={() => (window.location.href = "/campaigns")}
-            variant="ghost"
-            className="text-blue-200 hover:text-white hover:bg-blue-800/20"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            View Campaigns
-          </Button>
+          <Link href="/campaigns">
+            <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
+              <Users className="w-4 h-4 mr-2" />
+              View Campaigns
+            </Button>
+          </Link>
         </div>
 
         <div className="max-w-4xl mx-auto">
@@ -111,32 +175,15 @@ export default function CreateCampaign() {
             </p>
           </div>
 
+          {/* Wallet Connection */}
+          <WalletConnection onWalletConnected={setWalletAddress} />
+
+          {/* COMMENTED OUT: Builder Score Verification */}
+          {/* <BuilderScoreCard walletAddress={walletAddress} onVerificationComplete={setIsBuilderVerified} /> */}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Progress & Tips */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Builder Score Verification */}
-              <Card className="glass-card border-blue-500/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <TrendingUp className="w-6 h-6 text-blue-400" />
-                      <div>
-                        <div className="font-semibold text-white">Builder Score</div>
-                        <div className="text-sm text-blue-300">
-                          {isBuilderVerified ? "Verified" : "Verification Required"}
-                        </div>
-                      </div>
-                    </div>
-                    {!isBuilderVerified && (
-                      <Button onClick={handleVerifyBuilder} className="btn-primary">
-                        Verify
-                      </Button>
-                    )}
-                    {isBuilderVerified && <CheckCircle className="w-6 h-6 text-emerald-400" />}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Form Progress */}
               <Card className="glass-card border-blue-500/20">
                 <CardHeader>
@@ -156,25 +203,45 @@ export default function CreateCampaign() {
                       style={{ width: `${formScore}%` }}
                     ></div>
                   </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className={`flex items-center ${walletAddress ? "text-emerald-400" : "text-yellow-400"}`}>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Wallet Connected
+                    </div>
+                    {/* COMMENTED OUT: Builder verification check */}
+                    {/* <div className={`flex items-center ${isBuilderVerified ? "text-emerald-400" : "text-yellow-400"}`}>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Builder Score Verified
+                    </div> */}
+                    <div className={`flex items-center ${formScore === 100 ? "text-emerald-400" : "text-yellow-400"}`}>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Form Complete
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Tips Card */}
+              {/* Info Card - Updated to remove builder score requirement */}
               <Card className="glass-card border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-white flex items-center">
-                    <Lightbulb className="w-5 h-5 mr-2 text-yellow-400" />
-                    Pro Tips
+                    <AlertCircle className="w-5 h-5 mr-2 text-blue-400" />
+                    Quick Start
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm text-blue-200">
-                    <div className="font-medium text-white mb-1">• Be Specific</div>
-                    <div>Clear goals and timelines build trust</div>
+                    <div className="font-medium text-white mb-1">• Connect Wallet</div>
+                    <div>Connect your wallet to Base network</div>
                   </div>
                   <div className="text-sm text-blue-200">
-                    <div className="font-medium text-white mb-1">• Show Progress</div>
-                    <div>Share updates and milestones regularly</div>
+                    <div className="font-medium text-white mb-1">• Fill Details</div>
+                    <div>Complete all required campaign information</div>
+                  </div>
+                  <div className="text-sm text-blue-200">
+                    <div className="font-medium text-white mb-1">• Launch Campaign</div>
+                    <div>Deploy your campaign to the blockchain</div>
                   </div>
                 </CardContent>
               </Card>
@@ -192,6 +259,16 @@ export default function CreateCampaign() {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
+                  {error && (
+                    <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 flex items-start space-x-3">
+                      <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
+                      <div>
+                        <p className="text-red-300 font-medium text-sm">Error Creating Campaign</p>
+                        <p className="text-red-200 text-sm mt-1">{error}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Campaign Title */}
                     <FormField
@@ -204,7 +281,7 @@ export default function CreateCampaign() {
                       hint={validationState.title?.hint}
                       maxLength={validationRules.title.maxLength}
                       required
-                      disabled={!isBuilderVerified}
+                      disabled={!walletAddress}
                       validation={validationRules.title.validate}
                       suggestions={getSuggestions("title", formData.title)}
                     />
@@ -222,7 +299,7 @@ export default function CreateCampaign() {
                       hint={validationState.description?.hint}
                       maxLength={validationRules.description.maxLength}
                       required
-                      disabled={!isBuilderVerified}
+                      disabled={!walletAddress}
                       validation={validationRules.description.validate}
                     />
 
@@ -240,7 +317,7 @@ export default function CreateCampaign() {
                         error={validationState.goal?.error}
                         hint={validationState.goal?.hint}
                         required
-                        disabled={!isBuilderVerified}
+                        disabled={!walletAddress}
                         validation={validationRules.goal.validate}
                       />
 
@@ -256,8 +333,33 @@ export default function CreateCampaign() {
                         error={validationState.duration?.error}
                         hint={validationState.duration?.hint}
                         required
-                        disabled={!isBuilderVerified}
+                        disabled={!walletAddress}
                         validation={validationRules.duration.validate}
+                      />
+                    </div>
+
+                    {/* Optional Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        label="GitHub Repository (Optional)"
+                        value={formData.githubRepo}
+                        onChange={(value) => handleInputChange("githubRepo", value)}
+                        placeholder="https://github.com/username/repo"
+                        error={validationState.githubRepo?.error}
+                        hint={validationState.githubRepo?.hint}
+                        disabled={!walletAddress}
+                        validation={validationRules.githubRepo.validate}
+                      />
+
+                      <FormField
+                        label="Live Site URL (Optional)"
+                        value={formData.liveSiteUrl}
+                        onChange={(value) => handleInputChange("liveSiteUrl", value)}
+                        placeholder="https://yourproject.com"
+                        error={validationState.liveSiteUrl?.error}
+                        hint={validationState.liveSiteUrl?.hint}
+                        disabled={!walletAddress}
+                        validation={validationRules.liveSiteUrl.validate}
                       />
                     </div>
 
@@ -272,10 +374,10 @@ export default function CreateCampaign() {
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                           Creating Campaign...
                         </div>
-                      ) : !isBuilderVerified ? (
+                      ) : !walletAddress ? (
                         <div className="flex items-center">
-                          <TrendingUp className="w-5 h-5 mr-2" />
-                          Verify Builder Score First
+                          <AlertCircle className="w-5 h-5 mr-2" />
+                          Connect Wallet First
                         </div>
                       ) : formScore < 100 ? (
                         <div className="flex items-center">
@@ -285,7 +387,7 @@ export default function CreateCampaign() {
                       ) : (
                         <div className="flex items-center justify-center">
                           <Rocket className="w-5 h-5 mr-2" />
-                          Launch Campaign (Demo)
+                          Launch Campaign
                         </div>
                       )}
                     </Button>
