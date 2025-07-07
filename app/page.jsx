@@ -163,7 +163,7 @@ export default function LandingPage() {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-              CrowdfundMe
+              DevSpring
             </h1>
           </div>
 

@@ -7,19 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   ArrowLeft,
-  Users,
   Target,
   TrendingUp,
   RefreshCw,
   ExternalLink,
-  User,
   AlertCircle,
-  Download,
-  Calendar,
   CheckCircle,
   XCircle,
+  Clock,
+  Wallet,
 } from "lucide-react"
-import { getAllCampaigns, withdrawFunds } from "@/lib/web3"
+import { getAllCampaigns, withdrawFunds, getTokenBalance } from "@/lib/web3"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -31,9 +29,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [withdrawing, setWithdrawing] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState(null)
-  const [userAddress, setUserAddress] = useState(null)
+  const [userBalance, setUserBalance] = useState("0")
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [userAddress, setUserAddress] = useState("")
 
   useEffect(() => {
     if (!ready) return
@@ -41,49 +40,57 @@ export default function DashboardPage() {
       router.push("/")
       return
     }
+    loadDashboardData()
+  }, [ready, authenticated, router])
 
-    // Get user wallet address
-    if (user?.wallet?.address) {
-      setUserAddress(user.wallet.address)
-      loadCampaigns()
-    }
-  }, [ready, authenticated, user, router])
-
-  const loadCampaigns = async () => {
+  const loadDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
-      const allCampaigns = await getAllCampaigns()
-      setCampaigns(allCampaigns)
 
-      // Filter campaigns created by current user
-      if (user?.wallet?.address) {
-        const userCreatedCampaigns = allCampaigns.filter(
-          (campaign) => campaign.creator.toLowerCase() === user.wallet.address.toLowerCase(),
-        )
-        setUserCampaigns(userCreatedCampaigns)
+      // Get user's wallet address
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" })
+        if (accounts.length > 0) {
+          setUserAddress(accounts[0])
+
+          // Load all campaigns
+          const allCampaigns = await getAllCampaigns()
+          setCampaigns(allCampaigns)
+
+          // Filter campaigns created by this user
+          const userCreatedCampaigns = allCampaigns.filter(
+            (campaign) => campaign.creator.toLowerCase() === accounts[0].toLowerCase(),
+          )
+          setUserCampaigns(userCreatedCampaigns)
+
+          // Load user balance
+          const balance = await getTokenBalance(accounts[0])
+          setUserBalance(balance)
+        }
       }
     } catch (error) {
-      console.error("Error loading campaigns:", error)
-      setError("Failed to load campaigns")
+      console.error("Error loading dashboard data:", error)
+      setError("Failed to load dashboard data")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleWithdrawFunds = async (campaign) => {
-    if (!campaign) return
+  const handleWithdraw = async () => {
+    if (!selectedCampaign) return
 
     try {
       setWithdrawing(true)
       setError(null)
 
-      await withdrawFunds(campaign.address)
-      setSuccess(`Successfully withdrew funds from ${campaign.title}!`)
+      await withdrawFunds(selectedCampaign.address)
+
+      setSuccess(`Successfully withdrew ${selectedCampaign.raised} ETH from ${selectedCampaign.title}!`)
       setSelectedCampaign(null)
 
-      // Reload campaigns to show updated status
-      await loadCampaigns()
+      // Reload dashboard data
+      await loadDashboardData()
     } catch (error) {
       console.error("Error withdrawing funds:", error)
       setError(error.message || "Failed to withdraw funds")
@@ -104,23 +111,36 @@ export default function DashboardPage() {
     return Math.max(0, diffDays)
   }
 
+  const getCampaignStatus = (campaign) => {
+    const progress = getProgressPercentage(campaign.raised, campaign.goal)
+    const daysLeft = getDaysLeft(campaign.deadline)
+
+    if (!campaign.isActive && progress >= 100) {
+      return { status: "success", label: "Successful", icon: CheckCircle, color: "text-emerald-400" }
+    } else if (!campaign.isActive && progress < 100) {
+      return { status: "failed", label: "Failed", icon: XCircle, color: "text-red-400" }
+    } else if (campaign.isActive && daysLeft > 0) {
+      return { status: "active", label: "Active", icon: Clock, color: "text-blue-400" }
+    } else {
+      return { status: "ended", label: "Ended", icon: XCircle, color: "text-gray-400" }
+    }
+  }
+
   const canWithdraw = (campaign) => {
     const progress = getProgressPercentage(campaign.raised, campaign.goal)
-    const isEnded = !campaign.isActive || getDaysLeft(campaign.deadline) === 0
-    return isEnded && progress >= 100 // Can withdraw if campaign ended and goal reached
+    return !campaign.isActive && progress >= 100 && Number.parseFloat(campaign.raised) > 0
   }
 
   const getUserStats = () => {
-    const totalRaised = userCampaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
+    const totalCampaigns = userCampaigns.length
     const activeCampaigns = userCampaigns.filter((c) => c.isActive).length
-    const successfulCampaigns = userCampaigns.filter((c) => getProgressPercentage(c.raised, c.goal) >= 100).length
+    const successfulCampaigns = userCampaigns.filter((c) => {
+      const progress = getProgressPercentage(c.raised, c.goal)
+      return !c.isActive && progress >= 100
+    }).length
+    const totalRaised = userCampaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
 
-    return {
-      totalRaised: totalRaised.toFixed(2),
-      activeCampaigns,
-      totalCampaigns: userCampaigns.length,
-      successfulCampaigns,
-    }
+    return { totalCampaigns, activeCampaigns, successfulCampaigns, totalRaised: totalRaised.toFixed(4) }
   }
 
   if (!ready) {
@@ -151,7 +171,7 @@ export default function DashboardPage() {
 
           <div className="flex space-x-3">
             <Button
-              onClick={loadCampaigns}
+              onClick={loadDashboardData}
               variant="ghost"
               className="text-blue-200 hover:text-white hover:bg-blue-800/20"
               disabled={loading}
@@ -170,21 +190,19 @@ export default function DashboardPage() {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-4">
             My Dashboard
           </h1>
-          <p className="text-blue-200 text-lg max-w-2xl mx-auto">Monitor and manage your crowdfunding campaigns</p>
+          <p className="text-blue-200 text-lg max-w-2xl mx-auto">Monitor your campaigns and manage your funds</p>
           {userAddress && (
             <div className="mt-4 flex items-center justify-center space-x-2">
-              <User className="w-4 h-4 text-blue-300" />
-              <span className="text-blue-300 text-sm">
-                {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-              </span>
+              <Wallet className="w-4 h-4 text-blue-300" />
               <a
                 href={`https://basescan.org/address/${userAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300"
+                className="text-blue-300 hover:text-blue-200 text-sm font-mono"
               >
-                <ExternalLink className="w-3 h-3" />
+                {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
               </a>
+              <ExternalLink className="w-3 h-3 text-blue-400" />
             </div>
           )}
         </div>
@@ -206,7 +224,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* User Stats Overview */}
+        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <Card className="glass-card border-blue-500/20">
             <CardContent className="p-6 text-center">
@@ -218,7 +236,7 @@ export default function DashboardPage() {
 
           <Card className="glass-card border-blue-500/20">
             <CardContent className="p-6 text-center">
-              <Users className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
+              <Clock className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">{stats.activeCampaigns}</div>
               <div className="text-blue-200 text-sm">Active Campaigns</div>
             </CardContent>
@@ -265,11 +283,9 @@ export default function DashboardPage() {
         {!loading && userCampaigns.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {userCampaigns.map((campaign) => {
+              const campaignStatus = getCampaignStatus(campaign)
+              const StatusIcon = campaignStatus.icon
               const progress = getProgressPercentage(campaign.raised, campaign.goal)
-              const daysLeft = getDaysLeft(campaign.deadline)
-              const isEnded = !campaign.isActive || daysLeft === 0
-              const goalReached = progress >= 100
-              const canWithdrawFunds = canWithdraw(campaign)
 
               return (
                 <Card
@@ -280,12 +296,8 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-2">
                       <CardTitle className="text-xl font-bold text-white">{campaign.title}</CardTitle>
                       <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-1 px-2 py-1 bg-blue-500/20 rounded-full">
-                          <span className="text-lg">⟠</span>
-                          <span className="text-xs text-blue-300">ETH</span>
-                        </div>
-                        {goalReached && <CheckCircle className="w-5 h-5 text-emerald-400" />}
-                        {isEnded && !goalReached && <XCircle className="w-5 h-5 text-red-400" />}
+                        <StatusIcon className={`w-5 h-5 ${campaignStatus.color}`} />
+                        <span className={`text-sm font-medium ${campaignStatus.color}`}>{campaignStatus.label}</span>
                       </div>
                     </div>
                     <p className="text-blue-200 text-sm line-clamp-3">{campaign.description}</p>
@@ -317,18 +329,14 @@ export default function DashboardPage() {
                         <div className="text-white font-semibold">{campaign.goal} ETH</div>
                       </div>
                       <div>
-                        <div className="text-blue-300">Status</div>
-                        <div
-                          className={`font-semibold ${
-                            goalReached ? "text-emerald-400" : campaign.isActive ? "text-blue-400" : "text-red-400"
-                          }`}
-                        >
-                          {goalReached ? "Success" : campaign.isActive ? "Active" : "Ended"}
-                        </div>
+                        <div className="text-blue-300">Days Left</div>
+                        <div className="text-white font-semibold">{getDaysLeft(campaign.deadline)}</div>
                       </div>
                       <div>
-                        <div className="text-blue-300">Days Left</div>
-                        <div className="text-white font-semibold">{daysLeft}</div>
+                        <div className="text-blue-300">Created</div>
+                        <div className="text-white font-semibold">
+                          {new Date(campaign.deadline).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
 
@@ -361,21 +369,33 @@ export default function DashboardPage() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="space-y-2">
-                      {/* Withdraw Funds Button */}
-                      {canWithdrawFunds && (
+                    <div className="flex space-x-2">
+                      <a
+                        href={`https://basescan.org/address/${campaign.address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1"
+                      >
+                        <Button
+                          variant="outline"
+                          className="w-full text-blue-300 border-blue-500/20 hover:bg-blue-500/10 bg-transparent"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Contract
+                        </Button>
+                      </a>
+
+                      {canWithdraw(campaign) && (
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button className="btn-primary w-full" onClick={() => setSelectedCampaign(campaign)}>
-                              <Download className="w-4 h-4 mr-2" />
-                              Withdraw Funds
+                            <Button className="btn-primary flex-1" onClick={() => setSelectedCampaign(campaign)}>
+                              <Wallet className="w-4 h-4 mr-2" />
+                              Withdraw
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="glass-card border-blue-500/20">
                             <DialogHeader>
-                              <DialogTitle className="text-xl font-bold text-white">
-                                Withdraw Funds from {selectedCampaign?.title}
-                              </DialogTitle>
+                              <DialogTitle className="text-xl font-bold text-white">Withdraw Funds</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
@@ -383,37 +403,48 @@ export default function DashboardPage() {
                                   <CheckCircle className="w-5 h-5 text-emerald-400" />
                                   <span className="text-emerald-300 font-medium">Campaign Successful!</span>
                                 </div>
+                                <p className="text-emerald-200 text-sm">
+                                  Your campaign reached its funding goal. You can now withdraw the raised funds.
+                                </p>
+                              </div>
+
+                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                   <div>
-                                    <div className="text-emerald-300">Amount to Withdraw</div>
-                                    <div className="text-white font-semibold text-lg">
-                                      {selectedCampaign?.raised} ETH
+                                    <div className="text-blue-300">Campaign</div>
+                                    <div className="text-white font-semibold">{selectedCampaign?.title}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-blue-300">Amount to Withdraw</div>
+                                    <div className="text-white font-semibold">{selectedCampaign?.raised} ETH</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-blue-300">Your Current Balance</div>
+                                    <div className="text-white font-semibold">
+                                      {Number.parseFloat(userBalance).toFixed(4)} ETH
                                     </div>
                                   </div>
                                   <div>
-                                    <div className="text-emerald-300">Goal Achievement</div>
+                                    <div className="text-blue-300">After Withdrawal</div>
                                     <div className="text-white font-semibold">
-                                      {getProgressPercentage(selectedCampaign?.raised, selectedCampaign?.goal).toFixed(
-                                        1,
-                                      )}
-                                      %
+                                      {(
+                                        Number.parseFloat(userBalance) +
+                                        Number.parseFloat(selectedCampaign?.raised || 0)
+                                      ).toFixed(4)}{" "}
+                                      ETH
                                     </div>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                                <p className="text-blue-200 text-sm">
-                                  <strong>Note:</strong> Once you withdraw the funds, they will be transferred to your
-                                  wallet. This action cannot be undone.
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                                <p className="text-yellow-200 text-sm">
+                                  <strong>Note:</strong> This action cannot be undone. The funds will be transferred to
+                                  your wallet immediately.
                                 </p>
                               </div>
 
-                              <Button
-                                onClick={() => handleWithdrawFunds(selectedCampaign)}
-                                disabled={withdrawing}
-                                className="btn-primary w-full"
-                              >
+                              <Button onClick={handleWithdraw} disabled={withdrawing} className="btn-primary w-full">
                                 {withdrawing ? (
                                   <div className="flex items-center">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -421,7 +452,7 @@ export default function DashboardPage() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center">
-                                    <Download className="w-4 h-4 mr-2" />
+                                    <Wallet className="w-4 h-4 mr-2" />
                                     Confirm Withdrawal
                                   </div>
                                 )}
@@ -430,55 +461,11 @@ export default function DashboardPage() {
                           </DialogContent>
                         </Dialog>
                       )}
-
-                      {/* Campaign Status Info */}
-                      {!canWithdrawFunds && (
-                        <div className="text-center p-3 bg-slate-700/20 rounded-lg">
-                          <div className="text-sm text-blue-300">
-                            {!isEnded ? (
-                              <div className="flex items-center justify-center space-x-2">
-                                <Calendar className="w-4 h-4" />
-                                <span>Campaign Active - {daysLeft} days left</span>
-                              </div>
-                            ) : !goalReached ? (
-                              <div className="flex items-center justify-center space-x-2 text-red-300">
-                                <XCircle className="w-4 h-4" />
-                                <span>Goal not reached - No funds to withdraw</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center space-x-2 text-yellow-300">
-                                <AlertCircle className="w-4 h-4" />
-                                <span>Funds already withdrawn</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
               )
             })}
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        {!loading && userCampaigns.length > 0 && (
-          <div className="mt-12 text-center">
-            <div className="inline-flex space-x-4">
-              <Link href="/create">
-                <Button className="btn-primary">
-                  <Target className="w-4 h-4 mr-2" />
-                  Create New Campaign
-                </Button>
-              </Link>
-              <Link href="/campaigns">
-                <Button className="btn-secondary">
-                  <Users className="w-4 h-4 mr-2" />
-                  Explore All Campaigns
-                </Button>
-              </Link>
-            </div>
           </div>
         )}
       </div>
