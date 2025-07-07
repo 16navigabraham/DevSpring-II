@@ -1,4 +1,3 @@
-
 ---
 
 # 🚀 DevSpring: Crowdfund for Builders
@@ -31,7 +30,7 @@ DevSpring is a decentralized crowdfunding platform designed for developers to ra
 
 ## 📂 File Structure
 
-```
+\`\`\`
 app
 ├── abi/
 │   └── CrowdfundFactory.json
@@ -52,7 +51,7 @@ app
     ├── constants.js
     ├── ens.js
     └── provider.js
-```
+\`\`\`
 
 ---
 
@@ -60,29 +59,29 @@ app
 
 1. **Clone the repo**
 
-   ```bash
+   \`\`\`bash
    git clone https://github.com/16navigabraham/DevSpring.git
    cd DevSpring
-   ```
+   \`\`\`
 
 2. **Install dependencies**
 
-   ```bash
+   \`\`\`bash
    npm install
-   ```
+   \`\`\`
 
 3. **Add environment variable**
    Create a `.env` file and add your Privy App ID:
 
-   ```env
+   \`\`\`env
    NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
-   ```
+   \`\`\`
 
 4. **Run development server**
 
-   ```bash
+   \`\`\`bash
    npm run dev
-   ```
+   \`\`\`
 
 5. **Open in browser**
    Visit [https://dev-spring-five.vercel.app/]()
@@ -102,4 +101,3 @@ app
 MIT © [Abraham Adebanjo](https://github.com/16navigabraham)
 
 ---
-
