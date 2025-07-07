@@ -3,7 +3,7 @@
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles, Rocket, Users, TrendingUp, Wallet, ArrowRight } from "lucide-react"
+import { Sparkles, Rocket, Users, TrendingUp, Wallet, ArrowRight, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getAllCampaigns } from "@/lib/web3"
@@ -11,33 +11,6 @@ import { ClientOnly } from "@/components/ClientOnly"
 
 function AuthenticatedContent() {
   const { ready, authenticated, login } = usePrivy()
-  const [stats, setStats] = useState({
-    totalCampaigns: 0,
-    totalRaised: "0",
-    activeCampaigns: 0,
-  })
-
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const campaigns = await getAllCampaigns()
-        const totalRaised = campaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
-        const activeCampaigns = campaigns.filter((c) => c.isActive).length
-
-        setStats({
-          totalCampaigns: campaigns.length,
-          totalRaised: totalRaised.toFixed(2),
-          activeCampaigns,
-        })
-      } catch (error) {
-        console.error("Error loading stats:", error)
-      }
-    }
-
-    if (ready) {
-      loadStats()
-    }
-  }, [ready])
 
   if (!ready) {
     return (
@@ -49,21 +22,29 @@ function AuthenticatedContent() {
   }
 
   return (
-    <>
+    <div className="flex items-center space-x-4">
       {authenticated ? (
-        <Link href="/campaigns">
-          <Button className="btn-secondary">
-            <Users className="w-4 h-4 mr-2" />
-            Dashboard
-          </Button>
-        </Link>
+        <>
+          <Link href="/dashboard">
+            <Button className="btn-secondary">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Dashboard
+            </Button>
+          </Link>
+          <Link href="/campaigns">
+            <Button className="btn-secondary">
+              <Users className="w-4 h-4 mr-2" />
+              Explore
+            </Button>
+          </Link>
+        </>
       ) : (
         <Button onClick={login} className="btn-primary">
           <Wallet className="w-4 h-4 mr-2" />
           Connect Wallet
         </Button>
       )}
-    </>
+    </div>
   )
 }
 
@@ -87,6 +68,15 @@ function ActionButtons() {
               <span className="relative z-10 flex items-center">
                 <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                 Create Campaign
+              </span>
+            </Button>
+          </Link>
+
+          <Link href="/dashboard">
+            <Button className="btn-secondary group px-8 py-4 text-lg font-semibold">
+              <span className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                My Dashboard
               </span>
             </Button>
           </Link>
@@ -173,7 +163,7 @@ export default function LandingPage() {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-             DevSpring
+              CrowdfundMe
             </h1>
           </div>
 
@@ -231,11 +221,11 @@ export default function LandingPage() {
               <Card className="glass-card border-blue-500/20 p-6">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-6 h-6 text-blue-400" />
+                    <BarChart3 className="w-6 h-6 text-blue-400" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">Builder Score Verification</h3>
+                  <h3 className="text-xl font-semibold text-white mb-2">Campaign Management</h3>
                   <p className="text-blue-200 text-sm">
-                    Only verified builders with proven track records can create campaigns, ensuring quality projects.
+                    Monitor your campaigns, track progress, and withdraw funds when goals are reached.
                   </p>
                 </div>
               </Card>

@@ -2,14 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      }
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
     }
     
     return config
@@ -23,11 +21,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Disable static optimization for problematic pages
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
-  // Ensure proper handling of dynamic imports
-  transpilePackages: ['@privy-io/react-auth'],
 }
 
 export default nextConfig

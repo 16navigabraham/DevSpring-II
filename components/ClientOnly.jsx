@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 
 export function ClientOnly({ children, fallback = null }) {
   const [hasMounted, setHasMounted] = useState(false)
