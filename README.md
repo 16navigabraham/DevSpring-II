@@ -1,30 +1,105 @@
-# CrowdfundMe dApp
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+---
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/navigatorabraham-gmailcoms-projects/v0-crowdfund-me-d-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/2pIy0yuUzbB)
+# 🚀 DevSpring: Crowdfund for Builders
 
-## Overview
+DevSpring is a decentralized crowdfunding platform designed for developers to raise funds and showcase their projects. It ensures legitimacy by requiring ENS verification and allows support through on-chain contributions on Base.
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+---
 
-## Deployment
+## 💡 Features
 
-Your project is live at:
+* 🔐 **Privy Authentication** – Connect via wallet or email
+* 🌐 **ENS Verification** – Only wallets with ENS on Ethereum or Base can create campaigns
+* 💸 **Contributions on Base Chain**
+* 📦 **Smart Contract Powered** – Campaigns are on-chain with full transparency
+* 🔍 **Campaign Details Modal** – Users must review and agree before contributing
+* 🛠 **GitHub & Live URL Required** – Each campaign must include proof of work
 
-**[https://vercel.com/navigatorabraham-gmailcoms-projects/v0-crowdfund-me-d-app](https://vercel.com/navigatorabraham-gmailcoms-projects/v0-crowdfund-me-d-app)**
+---
 
-## Build your app
+## 🧱 Tech Stack
 
-Continue building your app on:
+* [Next.js](https://nextjs.org/)
+* [Tailwind CSS](https://tailwindcss.com/)
+* [Privy](https://privy.io/)
+* [Ethers.js](https://docs.ethers.org/)
+* [ENS.js](https://docs.ens.domains/)
+* [Base Chain](https://base.org)
 
-**[https://v0.dev/chat/projects/2pIy0yuUzbB](https://v0.dev/chat/projects/2pIy0yuUzbB)**
+---
 
-## How It Works
+## 📂 File Structure
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+```
+app
+├── abi/
+│   └── CrowdfundFactory.json
+├── components/
+│   ├── CampaignCard.jsx
+│   ├── ConnectWallet.jsx
+│   ├── ContributeModal.jsx
+│   └── providers.tsx
+├── contract/
+│   ├── CrowdfundFactory.sol
+│   └── crowdfund.sol
+├── pages/
+│   ├── Create.jsx
+│   └── Home.jsx
+├── styles/
+│   └── globals.css
+└── utils/
+    ├── constants.js
+    ├── ens.js
+    └── provider.js
+```
+
+---
+
+## ⚙️ Setup Instructions
+
+1. **Clone the repo**
+
+   ```bash
+   git clone https://github.com/16navigabraham/DevSpring.git
+   cd DevSpring
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Add environment variable**
+   Create a `.env` file and add your Privy App ID:
+
+   ```env
+   NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
+   ```
+
+4. **Run development server**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Open in browser**
+   Visit [https://dev-spring-five.vercel.app/]()
+
+---
+
+## 🔭 Coming Soon
+
+* 🧠 [Builder Score](https://docs.base.org/tools/builderscore/)
+* 🪪 Soulbound Tokens for verified dev identity
+* 📊 Campaign analytics dashboard
+
+---
+
+## 🧾 License
+
+MIT © [Abraham Adebanjo](https://github.com/16navigabraham)
+
+---
+
