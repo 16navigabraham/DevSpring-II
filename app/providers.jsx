@@ -15,7 +15,7 @@ export function Providers({ children }) {
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
         },
-        loginMethods: ["email", "wallet", "google", "twitter"],
+        loginMethods: ["email", "wallet"],
         defaultChain: base,
         supportedChains: [base],
       }}

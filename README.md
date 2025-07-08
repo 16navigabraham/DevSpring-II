@@ -30,29 +30,28 @@ DevSpring is a decentralized crowdfunding platform designed for developers to ra
 
 ## 📂 File Structure
 
-\\
+\`\`\`
 app
-├── api
-│   ├── builder-profile
-│   │   └── route.js
-│   └── builder-score
-│       └── route.js
-├── campaigns
-│   └── page.jsx
-├── contract
-│   ├── crowdfund.sol
-│   └── crowdfundfactory.sol
-├── create
-│   └── page.jsx
-├── dashboard
-│   └── page.jsx
-├── error.jsx
-├── globals.css
-├── layout.jsx
-├── loading.jsx
-├── page.jsx
-└── providers.jsx
-\\
+├── abi/
+│   └── CrowdfundFactory.json
+├── components/
+│   ├── CampaignCard.jsx
+│   ├── ConnectWallet.jsx
+│   ├── ContributeModal.jsx
+│   └── providers.tsx
+├── contract/
+│   ├── CrowdfundFactory.sol
+│   └── crowdfund.sol
+├── pages/
+│   ├── Create.jsx
+│   └── Home.jsx
+├── styles/
+│   └── globals.css
+└── utils/
+    ├── constants.js
+    ├── ens.js
+    └── provider.js
+\`\`\`
 
 ---
 
