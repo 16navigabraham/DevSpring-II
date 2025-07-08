@@ -4,23 +4,24 @@ import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Rocket, Calendar, Target, FileText, Users, CheckCircle, AlertCircle } from "lucide-react"
+import { ArrowLeft, Rocket, Calendar, Target, FileText, Users, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { FormField } from "@/components/FormField"
 import { validationRules, getValidationHints, getSuggestions } from "@/lib/validation"
 import { WalletConnection } from "@/components/WalletConnection"
-import { createCampaign } from "@/lib/web3"
+import { LogoutButton } from "@/components/LogoutButton"
+import { createCampaign, getFeePercentage } from "@/lib/web3"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function CreateCampaign() {
   const { ready, authenticated, user } = usePrivy()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  // COMMENTED OUT: Builder score verification
-  // const [isBuilderVerified, setIsBuilderVerified] = useState(false)
   const [walletAddress, setWalletAddress] = useState(null)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [feePercentage, setFeePercentage] = useState(0)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -39,7 +40,17 @@ export default function CreateCampaign() {
       router.push("/")
       return
     }
+    loadFeePercentage()
   }, [ready, authenticated, router])
+
+  const loadFeePercentage = async () => {
+    try {
+      const fee = await getFeePercentage()
+      setFeePercentage(fee)
+    } catch (error) {
+      console.error("Error loading fee percentage:", error)
+    }
+  }
 
   // Update form validation
   const updateValidation = () => {
@@ -78,7 +89,6 @@ export default function CreateCampaign() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    // MODIFIED: Only require wallet connection, not builder verification
     if (!walletAddress) return
 
     setIsLoading(true)
@@ -111,7 +121,6 @@ export default function CreateCampaign() {
     }
   }
 
-  // MODIFIED: Only require form completion and wallet connection
   const isFormValid = formScore === 100 && walletAddress
 
   if (!ready) {
@@ -131,6 +140,9 @@ export default function CreateCampaign() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
         <Card className="glass-card border-emerald-500/20 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/SpringDev.png" alt="DevSpring" width={64} height={64} className="rounded-lg" />
+            </div>
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Campaign Created!</h2>
             <p className="text-blue-200 mb-4">Your campaign has been successfully deployed to the blockchain.</p>
@@ -153,19 +165,22 @@ export default function CreateCampaign() {
             </Button>
           </Link>
 
-          <Link href="/campaigns">
-            <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
-              <Users className="w-4 h-4 mr-2" />
-              View Campaigns
-            </Button>
-          </Link>
+          <div className="flex items-center space-x-3">
+            <Link href="/campaigns">
+              <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
+                <Users className="w-4 h-4 mr-2" />
+                View Campaigns
+              </Button>
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full mb-6">
-              <Rocket className="w-8 h-8 text-white" />
+              <Image src="/SpringDev.png" alt="DevSpring" width={32} height={32} className="rounded" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-4">
               Launch Your Campaign
@@ -177,9 +192,6 @@ export default function CreateCampaign() {
 
           {/* Wallet Connection */}
           <WalletConnection onWalletConnected={setWalletAddress} />
-
-          {/* COMMENTED OUT: Builder Score Verification */}
-          {/* <BuilderScoreCard walletAddress={walletAddress} onVerificationComplete={setIsBuilderVerified} /> */}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Progress & Tips */}
@@ -209,11 +221,6 @@ export default function CreateCampaign() {
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Wallet Connected
                     </div>
-                    {/* COMMENTED OUT: Builder verification check */}
-                    {/* <div className={`flex items-center ${isBuilderVerified ? "text-emerald-400" : "text-yellow-400"}`}>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Builder Score Verified
-                    </div> */}
                     <div className={`flex items-center ${formScore === 100 ? "text-emerald-400" : "text-yellow-400"}`}>
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Form Complete
@@ -222,7 +229,31 @@ export default function CreateCampaign() {
                 </CardContent>
               </Card>
 
-              {/* Info Card - Updated to remove builder score requirement */}
+              {/* Dev Fee Info */}
+              <Card className="glass-card border-yellow-500/20">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-white flex items-center">
+                    <Info className="w-5 h-5 mr-2 text-yellow-400" />
+                    Platform Fee
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-yellow-200">
+                    <div className="font-medium text-white mb-1">• Dev Fee: {feePercentage}%</div>
+                    <div>A {feePercentage}% fee is deducted when you withdraw funds</div>
+                  </div>
+                  <div className="text-sm text-yellow-200">
+                    <div className="font-medium text-white mb-1">• 7-Day Grace Period</div>
+                    <div>You have 7 days after campaign ends to withdraw</div>
+                  </div>
+                  <div className="text-sm text-yellow-200">
+                    <div className="font-medium text-white mb-1">• Auto-Refund</div>
+                    <div>Contributors get refunded if goal not met or you don't withdraw in time</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Start Info */}
               <Card className="glass-card border-blue-500/20">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-white flex items-center">

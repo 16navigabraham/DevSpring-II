@@ -16,10 +16,21 @@ import {
   XCircle,
   Clock,
   Wallet,
+  RotateCcw,
+  Info,
 } from "lucide-react"
-import { getAllCampaigns, withdrawFunds, getTokenBalance } from "@/lib/web3"
+import {
+  getAllCampaigns,
+  withdrawFunds,
+  getTokenBalance,
+  getCampaignDetails,
+  getFeePercentage,
+  refundContribution,
+} from "@/lib/web3"
+import { LogoutButton } from "@/components/LogoutButton"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function DashboardPage() {
   const { ready, authenticated, user } = usePrivy()
@@ -28,8 +39,11 @@ export default function DashboardPage() {
   const [userCampaigns, setUserCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [withdrawing, setWithdrawing] = useState(false)
+  const [refunding, setRefunding] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState(null)
+  const [campaignDetails, setCampaignDetails] = useState(null)
   const [userBalance, setUserBalance] = useState("0")
+  const [feePercentage, setFeePercentage] = useState(0)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [userAddress, setUserAddress] = useState("")
@@ -64,9 +78,10 @@ export default function DashboardPage() {
           )
           setUserCampaigns(userCreatedCampaigns)
 
-          // Load user balance
-          const balance = await getTokenBalance(accounts[0])
+          // Load user balance and fee percentage
+          const [balance, fee] = await Promise.all([getTokenBalance(accounts[0]), getFeePercentage()])
           setUserBalance(balance)
+          setFeePercentage(fee)
         }
       }
     } catch (error) {
@@ -86,8 +101,11 @@ export default function DashboardPage() {
 
       await withdrawFunds(selectedCampaign.address)
 
-      setSuccess(`Successfully withdrew ${selectedCampaign.raised} ETH from ${selectedCampaign.title}!`)
+      setSuccess(
+        `Successfully withdrew funds from ${selectedCampaign.title}! Dev fee of ${feePercentage}% was deducted.`,
+      )
       setSelectedCampaign(null)
+      setCampaignDetails(null)
 
       // Reload dashboard data
       await loadDashboardData()
@@ -96,6 +114,36 @@ export default function DashboardPage() {
       setError(error.message || "Failed to withdraw funds")
     } finally {
       setWithdrawing(false)
+    }
+  }
+
+  const handleAutoRefund = async (campaign) => {
+    try {
+      setRefunding(true)
+      setError(null)
+
+      await refundContribution(campaign.address)
+
+      setSuccess(`Auto-refund initiated for ${campaign.title}. Contributors can now claim their refunds.`)
+
+      // Reload dashboard data
+      await loadDashboardData()
+    } catch (error) {
+      console.error("Error initiating auto-refund:", error)
+      setError(error.message || "Failed to initiate auto-refund")
+    } finally {
+      setRefunding(false)
+    }
+  }
+
+  const loadCampaignDetails = async (campaign) => {
+    try {
+      const details = await getCampaignDetails(campaign.address)
+      setCampaignDetails(details)
+      setSelectedCampaign(campaign)
+    } catch (error) {
+      console.error("Error loading campaign details:", error)
+      setError("Failed to load campaign details")
     }
   }
 
@@ -111,13 +159,35 @@ export default function DashboardPage() {
     return Math.max(0, diffDays)
   }
 
+  const getWithdrawalDaysLeft = (withdrawalDeadline) => {
+    const now = new Date()
+    const end = new Date(withdrawalDeadline)
+    const diffTime = end - now
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.max(0, diffDays)
+  }
+
   const getCampaignStatus = (campaign) => {
     const progress = getProgressPercentage(campaign.raised, campaign.goal)
     const daysLeft = getDaysLeft(campaign.deadline)
 
-    if (!campaign.isActive && progress >= 100) {
+    if (campaign.withdrawn) {
+      return { status: "withdrawn", label: "Withdrawn", icon: CheckCircle, color: "text-emerald-400" }
+    } else if (!campaign.isActive && campaign.isGoalMet && !campaign.withdrawn) {
+      const withdrawalDaysLeft = getWithdrawalDaysLeft(campaign.withdrawalDeadline)
+      if (withdrawalDaysLeft > 0) {
+        return {
+          status: "withdrawal_period",
+          label: `Withdraw (${withdrawalDaysLeft}d left)`,
+          icon: Clock,
+          color: "text-yellow-400",
+        }
+      } else {
+        return { status: "grace_expired", label: "Grace Period Expired", icon: XCircle, color: "text-red-400" }
+      }
+    } else if (!campaign.isActive && campaign.isGoalMet) {
       return { status: "success", label: "Successful", icon: CheckCircle, color: "text-emerald-400" }
-    } else if (!campaign.isActive && progress < 100) {
+    } else if (!campaign.isActive && !campaign.isGoalMet) {
       return { status: "failed", label: "Failed", icon: XCircle, color: "text-red-400" }
     } else if (campaign.isActive && daysLeft > 0) {
       return { status: "active", label: "Active", icon: Clock, color: "text-blue-400" }
@@ -127,17 +197,18 @@ export default function DashboardPage() {
   }
 
   const canWithdraw = (campaign) => {
-    const progress = getProgressPercentage(campaign.raised, campaign.goal)
-    return !campaign.isActive && progress >= 100 && Number.parseFloat(campaign.raised) > 0
+    return (
+      !campaign.isActive &&
+      campaign.isGoalMet &&
+      !campaign.withdrawn &&
+      getWithdrawalDaysLeft(campaign.withdrawalDeadline) > 0
+    )
   }
 
   const getUserStats = () => {
     const totalCampaigns = userCampaigns.length
     const activeCampaigns = userCampaigns.filter((c) => c.isActive).length
-    const successfulCampaigns = userCampaigns.filter((c) => {
-      const progress = getProgressPercentage(c.raised, c.goal)
-      return !c.isActive && progress >= 100
-    }).length
+    const successfulCampaigns = userCampaigns.filter((c) => c.isGoalMet && c.withdrawn).length
     const totalRaised = userCampaigns.reduce((sum, campaign) => sum + Number.parseFloat(campaign.raised), 0)
 
     return { totalCampaigns, activeCampaigns, successfulCampaigns, totalRaised: totalRaised.toFixed(4) }
@@ -182,11 +253,15 @@ export default function DashboardPage() {
             <Link href="/create">
               <Button className="btn-primary">Create Campaign</Button>
             </Link>
+            <LogoutButton />
           </div>
         </div>
 
         {/* Page Title */}
         <div className="text-center mb-12">
+          <div className="flex justify-center mb-4">
+            <Image src="/SpringDev.png" alt="DevSpring" width={64} height={64} className="rounded-lg" />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-4">
             My Dashboard
           </h1>
@@ -333,40 +408,14 @@ export default function DashboardPage() {
                         <div className="text-white font-semibold">{getDaysLeft(campaign.deadline)}</div>
                       </div>
                       <div>
-                        <div className="text-blue-300">Created</div>
+                        <div className="text-blue-300">Withdrawal Days</div>
                         <div className="text-white font-semibold">
-                          {new Date(campaign.deadline).toLocaleDateString()}
+                          {campaign.isGoalMet && !campaign.withdrawn
+                            ? getWithdrawalDaysLeft(campaign.withdrawalDeadline)
+                            : "N/A"}
                         </div>
                       </div>
                     </div>
-
-                    {/* Links */}
-                    {(campaign.githubRepo || campaign.liveSiteUrl) && (
-                      <div className="flex space-x-2">
-                        {campaign.githubRepo && (
-                          <a
-                            href={campaign.githubRepo}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            GitHub
-                          </a>
-                        )}
-                        {campaign.liveSiteUrl && (
-                          <a
-                            href={campaign.liveSiteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            Live Site
-                          </a>
-                        )}
-                      </div>
-                    )}
 
                     {/* Action Buttons */}
                     <div className="flex space-x-2">
@@ -381,14 +430,14 @@ export default function DashboardPage() {
                           className="w-full text-blue-300 border-blue-500/20 hover:bg-blue-500/10 bg-transparent"
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
-                          View Contract
+                          Contract
                         </Button>
                       </a>
 
                       {canWithdraw(campaign) && (
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button className="btn-primary flex-1" onClick={() => setSelectedCampaign(campaign)}>
+                            <Button className="btn-primary flex-1" onClick={() => loadCampaignDetails(campaign)}>
                               <Wallet className="w-4 h-4 mr-2" />
                               Withdraw
                             </Button>
@@ -404,45 +453,59 @@ export default function DashboardPage() {
                                   <span className="text-emerald-300 font-medium">Campaign Successful!</span>
                                 </div>
                                 <p className="text-emerald-200 text-sm">
-                                  Your campaign reached its funding goal. You can now withdraw the raised funds.
+                                  Your campaign reached its funding goal. You can withdraw the raised funds.
                                 </p>
-                              </div>
-
-                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <div className="text-blue-300">Campaign</div>
-                                    <div className="text-white font-semibold">{selectedCampaign?.title}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">Amount to Withdraw</div>
-                                    <div className="text-white font-semibold">{selectedCampaign?.raised} ETH</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">Your Current Balance</div>
-                                    <div className="text-white font-semibold">
-                                      {Number.parseFloat(userBalance).toFixed(4)} ETH
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">After Withdrawal</div>
-                                    <div className="text-white font-semibold">
-                                      {(
-                                        Number.parseFloat(userBalance) +
-                                        Number.parseFloat(selectedCampaign?.raised || 0)
-                                      ).toFixed(4)}{" "}
-                                      ETH
-                                    </div>
-                                  </div>
-                                </div>
                               </div>
 
                               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <Info className="w-5 h-5 text-yellow-400" />
+                                  <span className="text-yellow-300 font-medium">Dev Fee Notice</span>
+                                </div>
                                 <p className="text-yellow-200 text-sm">
-                                  <strong>Note:</strong> This action cannot be undone. The funds will be transferred to
-                                  your wallet immediately.
+                                  A {feePercentage}% development fee will be deducted from the withdrawal amount.
                                 </p>
                               </div>
+
+                              {campaignDetails && (
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <div className="text-blue-300">Amount to Withdraw</div>
+                                      <div className="text-white font-semibold">
+                                        {campaignDetails.totalFundsRaised} ETH
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-blue-300">Dev Fee ({feePercentage}%)</div>
+                                      <div className="text-white font-semibold">
+                                        {(
+                                          (Number.parseFloat(campaignDetails.totalFundsRaised) * feePercentage) /
+                                          100
+                                        ).toFixed(4)}{" "}
+                                        ETH
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-blue-300">You'll Receive</div>
+                                      <div className="text-white font-semibold">
+                                        {(
+                                          (Number.parseFloat(campaignDetails.totalFundsRaised) *
+                                            (100 - feePercentage)) /
+                                          100
+                                        ).toFixed(4)}{" "}
+                                        ETH
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-blue-300">Withdrawal Deadline</div>
+                                      <div className="text-white font-semibold">
+                                        {getWithdrawalDaysLeft(campaignDetails.withdrawalDeadline)} days left
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                               <Button onClick={handleWithdraw} disabled={withdrawing} className="btn-primary w-full">
                                 {withdrawing ? (
@@ -460,6 +523,26 @@ export default function DashboardPage() {
                             </div>
                           </DialogContent>
                         </Dialog>
+                      )}
+
+                      {campaign.canAutoRefund && (
+                        <Button
+                          onClick={() => handleAutoRefund(campaign)}
+                          disabled={refunding}
+                          className="btn-secondary flex-1"
+                        >
+                          {refunding ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Refunding...
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Auto-Refund
+                            </div>
+                          )}
+                        </Button>
                       )}
                     </div>
                   </CardContent>

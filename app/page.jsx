@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getAllCampaigns } from "@/lib/web3"
 import { ClientOnly } from "@/components/ClientOnly"
+import Image from "next/image"
 
 function AuthenticatedContent() {
   const { ready, authenticated, login } = usePrivy()
@@ -160,7 +161,7 @@ export default function LandingPage() {
         <header className="p-6 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
+              <Image src="/SpringDev.png" alt="DevSpring" width={24} height={24} className="rounded" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
               DevSpring
@@ -177,6 +178,9 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center">
             {/* Hero Section */}
             <div className="mb-12">
+              <div className="flex justify-center mb-6">
+                <Image src="/SpringDev.png" alt="DevSpring" width={80} height={80} className="rounded-lg" />
+              </div>
               <h2 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent leading-tight">
                 Fund the Future
               </h2>
