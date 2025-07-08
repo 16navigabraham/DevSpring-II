@@ -30,7 +30,7 @@ DevSpring is a decentralized crowdfunding platform designed for developers to ra
 
 ## 📂 File Structure
 
-\`\`\`
+\\
 app
 ├── api
 │   ├── builder-profile
@@ -52,7 +52,7 @@ app
 ├── loading.jsx
 ├── page.jsx
 └── providers.jsx
-\`\`\`
+\\
 
 ---
 
