@@ -18,7 +18,7 @@ import {
   AlertCircle,
   RotateCcw,
 } from "lucide-react"
-import { getAllCampaigns, contributeToCampaign, getUserContribution, refundContribution } from "@/lib/web3"
+import { getAllCampaigns, contributeToCampaign,getContribution, refundContribution } from "@/lib/web3"
 import { LogoutButton } from "@/components/LogoutButton"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -66,7 +66,7 @@ export default function CampaignsPage() {
           const contributions = {}
           for (const campaign of allCampaigns) {
             try {
-              const contribution = await getUserContribution(campaign.address, accounts[0])
+              const contribution = awaitgetContribution(campaign.address, accounts[0])
               contributions[campaign.address] = contribution
             } catch (error) {
               console.error(`Error getting contribution for ${campaign.address}:`, error)

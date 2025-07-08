@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import "./crowdfunds.sol";
+import "./crowdfund.sol";
 
 contract CrowdfundFactory {
     address public devWallet;
