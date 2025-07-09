@@ -2,14 +2,14 @@
 
 # 🚀 DevSpring: Crowdfund for Builders
 
-DevSpring is a decentralized crowdfunding platform designed for developers to raise funds and showcase their projects. It ensures legitimacy by requiring ENS verification and allows support through on-chain contributions on Base.
+DevSpring is a decentralized crowdfunding platform designed for developers to raise funds and showcase their projects. It ensures legitimacy by requiring >=60 builder score and allows support through on-chain contributions on Base.
 
 ---
 
 ## 💡 Features
 
-* 🔐 **Privy Authentication** – Connect via wallet or email
-* 🌐 **ENS Verification** – Only wallets with ENS on Ethereum or Base can create campaigns
+* 🔐 **Privy Authentication** – Connect via wallet or email(embed wallet not functional for now use wallet)
+* 🌐 **Builder score** – Only wallets with >=60 bulder score can create campaigns
 * 💸 **Contributions on Base Chain**
 * 📦 **Smart Contract Powered** – Campaigns are on-chain with full transparency
 * 🔍 **Campaign Details Modal** – Users must review and agree before contributing

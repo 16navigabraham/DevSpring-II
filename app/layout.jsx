@@ -5,7 +5,7 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "CrowdfundMe - Decentralized Crowdfunding",
+  title: "SpringDev - Decentralized Crowdfunding",
   description: "Fund the future with blockchain-powered crowdfunding on Base",
   icons: {
     icon: "/SpringDev.png",
