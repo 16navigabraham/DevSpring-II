@@ -83,45 +83,47 @@ export default function CreateCampaign() {
     setFormScore(score)
   }
 
-   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!walletAddress) return
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!walletAddress) return
 
-    setIsLoading(true)
-    setError(null)
+  setIsLoading(true)
+  setError(null)
 
-    try {
-      const metadata = {
-        title: formData.title,
-        description: formData.description,
-        githubRepo: formData.githubRepo,
-        liveSiteUrl: formData.liveSiteUrl,
-      }
-
-      const ipfsUrl = await uploadCampaignMetadata(metadata)
-
-      const campaignData = {
-        goal: formData.goal,
-        duration: Number.parseInt(formData.duration),
-      }
-
-      const result = await createCampaign(campaignData)
-
-      if (result?.logs?.[0]?.address && ipfsUrl) {
-        localStorage.setItem(result.logs[0].address, ipfsUrl)
-      }
-
-      setSuccess(true)
-      setTimeout(() => {
-        router.push("/campaigns")
-      }, 2000)
-    } catch (error) {
-      console.error("Error creating campaign:", error)
-      setError(error.message || "Failed to create campaign")
-    } finally {
-      setIsLoading(false)
+  try {
+    const metadata = {
+      title: formData.title,
+      description: formData.description,
+      githubRepo: formData.githubRepo,
+      liveSiteUrl: formData.liveSiteUrl,
     }
+
+    const metadataURI = await uploadCampaignMetadata(metadata)
+
+    const campaignData = {
+      goal: formData.goal,
+      duration: Number.parseInt(formData.duration),
+      metadataURI: metadataURI,
+    }
+
+    const result = await createCampaign(campaignData)
+
+    if (result?.logs?.[0]?.address && metadataURI) {
+      localStorage.setItem(result.logs[0].address, metadataURI)
+    }
+
+    setSuccess(true)
+    setTimeout(() => {
+      router.push("/campaigns")
+    }, 2000)
+  } catch (error) {
+    console.error("Error creating campaign:", error)
+    setError(error.message || "Failed to create campaign")
+  } finally {
+    setIsLoading(false)
   }
+}
+
 
 
   const isFormValid = formScore === 100 && walletAddress
@@ -143,9 +145,9 @@ export default function CreateCampaign() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
         <Card className="glass-card border-emerald-500/20 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            <div className="flex justify-center mb-4">
+            {/* <div className="flex justify-center mb-4">
               <Image src="/SpringDev.png" alt="DevSpring" width={64} height={64} className="rounded-lg" />
-            </div>
+            </div> */}
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Campaign Created!</h2>
             <p className="text-blue-200 mb-4">Your campaign has been successfully deployed to the blockchain.</p>

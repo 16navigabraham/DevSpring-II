@@ -14,9 +14,7 @@ import { fetchCampaignMetadata } from "@/lib/ipfs"
 import { LogoutButton } from "@/components/LogoutButton"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { fetchETHPriceInUSD } from "@/lib/prices"
-
 
 export default function CampaignsPage() {
   const { ready, authenticated } = usePrivy()
@@ -31,13 +29,11 @@ export default function CampaignsPage() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [userAddress, setUserAddress] = useState("")
-
   const [ethPrice, setEthPrice] = useState(0)
 
   useEffect(() => {
-   fetchETHPriceInUSD().then(setEthPrice)
-    }, [])
-
+    fetchETHPriceInUSD().then(setEthPrice)
+  }, [])
 
   useEffect(() => {
     if (!ready) return
@@ -56,7 +52,6 @@ export default function CampaignsPage() {
       const accounts = await window.ethereum?.request({ method: "eth_accounts" }) || []
       const address = accounts[0]
       if (!address) return
-
       setUserAddress(address)
 
       const onchainCampaigns = await getAllCampaigns()
@@ -197,99 +192,117 @@ export default function CampaignsPage() {
 
         {!loading && campaigns.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {campaigns.map((c) => {
-              const status = campaignStatus(c)
-              const progress = getProgress(c.raised, c.goal)
-              const userContribution = userContributions[c.address] || "0"
+        {campaigns.map((c) => {
+  const status = campaignStatus(c)
+  const progress = getProgress(c.raised, c.goal)
+  const userContribution = userContributions[c.address] || "0"
 
-              return (
-                <Card key={c.address} className="bg-slate-800 border border-slate-600">
-                  <CardHeader>
-                    <div className="flex justify-between items-center mb-2">
-                      <CardTitle className="text-lg font-bold">{c.title}</CardTitle>
-                      <span className={`${status.color} flex items-center gap-1 text-sm`}>
-                        <status.icon className="w-4 h-4" /> {status.label}
-                      </span>
-                    </div>
-                    <p className="text-slate-300 text-sm line-clamp-3">{c.description}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-sm">
-                    <div className="h-2 bg-slate-600 rounded-full">
-                      <div className="h-2 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${progress}%` }}></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>Raised: {c.raised} ETH</div>
-                      <div>Goal: {c.goal} ETH</div>
-                      <div>Days Left: {getDaysLeft(c.deadline)}</div>
-                      <div>Your Contribution: {parseFloat(userContribution).toFixed(4)} ETH</div>
-                    </div>
-                    <div className="flex gap-2 items-center text-xs">
-                      <ExternalLink className="w-4 h-4" />
-                      <a href={`https://basescan.org/address/${c.address}`} target="_blank" className="hover:underline">
-                        Contract
-                      </a>
-                      {c.liveSiteUrl && (
-                        <>
-                          <Globe className="w-4 h-4 ml-4" />
-                          <a href={c.liveSiteUrl} target="_blank" className="hover:underline">Live site</a>
-                        </>
-                      )}
-                      {c.githubRepo && (
-                        <>
-                          <Github className="w-4 h-4 ml-4" />
-                          <a href={c.githubRepo} target="_blank" className="hover:underline">GitHub</a>
-                        </>
-                      )}
-                    </div>
+  const handleShare = async () => {
+    const url = `${window.location.origin}/campaigns/${c.address}`
+    await navigator.clipboard.writeText(url)
+    alert("Link copied to clipboard!")
+  }
 
-                    <div className="flex gap-2 mt-4">
-                      {c.isActive && (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button onClick={() => setSelectedCampaign(c)} className="flex-1">
-                              <Wallet className="w-4 h-4 mr-2" /> Contribute
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Contribute to {selectedCampaign?.title}</DialogTitle>
-                            </DialogHeader>
-                            <input
-                              type="number"
-                              value={contributionAmount}
-                              onChange={(e) => setContributionAmount(e.target.value)}
-                              placeholder="0.01 ETH"
-                              className="w-full p-2 rounded bg-slate-700 text-white mb-4"
-                            />
-                            {contributionAmount && ethPrice > 0 && (
-                             <p className="text-blue-400 text-sm mt-1">
-                                  ≈ ${(parseFloat(contributionAmount) * ethPrice).toFixed(2)} USD
-                               </p>
-                               )}
-                            <Button
-                              onClick={handleContribute}
-                              disabled={contributing || Number.parseFloat(contributionAmount) <= 0}
-                              className="w-full"
-                            >
-                              {contributing ? "Contributing..." : `Contribute ${contributionAmount || 0} ETH`}
-                            </Button>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                      {canRefund(c) && (
-                        <Button onClick={() => handleRefund(c)} disabled={refunding} className="flex-1">
-                          <RotateCcw className="w-4 h-4 mr-2" /> Refund
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+  return (
+    <Card key={c.address} className="bg-slate-800 border border-slate-600">
+      <CardHeader>
+        <div className="flex justify-between items-center mb-2">
+          <CardTitle className="text-lg font-bold">{c.title}</CardTitle>
+          <span className={`${status.color} flex items-center gap-1 text-sm`}>
+            <status.icon className="w-4 h-4" /> {status.label}
+          </span>
+        </div>
+        <p className="text-slate-300 text-sm line-clamp-3">{c.description}</p>
+      </CardHeader>
+
+      <CardContent className="space-y-4 text-sm">
+        <div className="h-2 bg-slate-600 rounded-full">
+          <div
+            className="h-2 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>Raised: {c.raised} ETH</div>
+          <div>Goal: {c.goal} ETH</div>
+          <div>Days Left: {getDaysLeft(c.deadline)}</div>
+          <div>Your Contribution: {parseFloat(userContribution).toFixed(4)} ETH</div>
+        </div>
+
+        <div className="flex gap-2 items-center text-xs flex-wrap">
+          <ExternalLink className="w-4 h-4" />
+          <a href={`https://basescan.org/address/${c.address}`} target="_blank" className="hover:underline">
+            Contract
+          </a>
+
+          {c.liveSiteUrl && (
+            <>
+              <Globe className="w-4 h-4 ml-4" />
+              <a href={c.liveSiteUrl} target="_blank" className="hover:underline">Live site</a>
+            </>
+          )}
+
+          {c.githubRepo && (
+            <>
+              <Github className="w-4 h-4 ml-4" />
+              <a href={c.githubRepo} target="_blank" className="hover:underline">GitHub</a>
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-4 flex-wrap">
+          {c.isActive && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button onClick={() => setSelectedCampaign(c)} className="flex-1">
+                  <Wallet className="w-4 h-4 mr-2" /> Contribute
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Contribute to {selectedCampaign?.title}</DialogTitle>
+                </DialogHeader>
+                <input
+                  type="number"
+                  value={contributionAmount}
+                  onChange={(e) => setContributionAmount(e.target.value)}
+                  placeholder="0.01 ETH"
+                  className="w-full p-2 rounded bg-slate-700 text-white mb-4"
+                />
+                {contributionAmount && ethPrice > 0 && (
+                  <p className="text-blue-400 text-sm mt-1">
+                    ≈ ${(parseFloat(contributionAmount) * ethPrice).toFixed(2)} USD
+                  </p>
+                )}
+                <Button
+                  onClick={handleContribute}
+                  disabled={contributing || Number.parseFloat(contributionAmount) <= 0}
+                  className="w-full"
+                >
+                  {contributing ? "Contributing..." : `Contribute ${contributionAmount || 0} ETH`}
+                </Button>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {canRefund(c) && (
+            <Button onClick={() => handleRefund(c)} disabled={refunding} className="flex-1">
+              <RotateCcw className="w-4 h-4 mr-2" /> Refund
+            </Button>
+          )}
+
+          <Button onClick={handleShare} variant="secondary" className="flex-1">
+            <ExternalLink className="w-4 h-4 mr-2" /> Share
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+        })}
           </div>
         )}
       </div>
     </div>
   )
 }
-// This code is a React component for a campaigns page in a decentralized application.

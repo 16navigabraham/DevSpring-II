@@ -5,7 +5,7 @@ import "./crowdfund.sol";
 
 contract CrowdfundFactory {
     address public devWallet;
-    uint256 public feePercentage; // in bps (e.g., 50 = 0.5%)
+    uint256 public feePercentage; // in basis points (e.g., 50 = 0.5%)
     address[] public campaigns;
 
     event CampaignCreated(address indexed campaign, address indexed creator);
@@ -27,11 +27,20 @@ contract CrowdfundFactory {
         feePercentage = _newFee;
     }
 
-    function createCrowdfund(uint256 goal, uint256 duration) external returns (address) {
-        crowdfunds newCampaign = new crowdfunds(goal, duration, devWallet, feePercentage);
+    function createCrowdfund(
+        uint256 fundingGoal,
+        uint256 durationInSeconds,
+        string memory metadataURI
+    ) external {
+        crowdfunds newCampaign = new crowdfunds(
+            fundingGoal,
+            durationInSeconds,
+            devWallet,
+            feePercentage,
+            metadataURI
+        );
         campaigns.push(address(newCampaign));
         emit CampaignCreated(address(newCampaign), msg.sender);
-        return address(newCampaign);
     }
 
     function getAllCampaigns() external view returns (address[] memory) {

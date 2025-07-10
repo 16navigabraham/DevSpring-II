@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 contract crowdfunds {
     address public owner;
     address public devWallet;
-    uint256 public feePercentage; // in basis points (e.g., 50 = 0.5%)
+    uint256 public feePercentage;
 
     mapping(address => uint256) public contributors;
 
@@ -12,6 +12,7 @@ contract crowdfunds {
     uint256 public fundingGoal;
     uint256 public deadline;
     uint256 public withdrawalDeadline;
+    string public metadataURI;
 
     bool public fundsWithdrawn = false;
 
@@ -23,14 +24,20 @@ contract crowdfunds {
         uint256 _fundingGoal,
         uint256 _duration,
         address _devWallet,
-        uint256 _feePercentage
+        uint256 _feePercentage,
+        string memory _metadataURI
     ) {
+        require(_fundingGoal > 0, "Goal must be > 0");
+        require(_duration > 0, "Duration must be > 0");
+        require(_feePercentage <= 1000, "Max 10%");
+
         owner = msg.sender;
         fundingGoal = _fundingGoal;
         deadline = block.timestamp + _duration;
         withdrawalDeadline = deadline + 7 days;
         devWallet = _devWallet;
         feePercentage = _feePercentage;
+        metadataURI = _metadataURI;
     }
 
     modifier onlyOwner() {
@@ -48,18 +55,27 @@ contract crowdfunds {
         require(totalFundsRaised < fundingGoal, "Goal met");
         require(msg.value > 0, "Zero contribution");
 
-        contributors[msg.sender] += msg.value;
-        totalFundsRaised += msg.value;
+        uint256 allowed = fundingGoal - totalFundsRaised;
+        uint256 accepted = msg.value > allowed ? allowed : msg.value;
 
-        emit ContributionReceived(msg.sender, msg.value);
+        contributors[msg.sender] += accepted;
+        totalFundsRaised += accepted;
+
+        if (msg.value > accepted) {
+            payable(msg.sender).transfer(msg.value - accepted);
+        }
+
+        emit ContributionReceived(msg.sender, accepted);
     }
 
     function withdrawFunds() external onlyOwner {
         require(totalFundsRaised >= fundingGoal, "Goal not met");
+        require(block.timestamp > deadline, "Too early to withdraw");
         require(block.timestamp <= withdrawalDeadline, "Withdrawal period ended");
         require(!fundsWithdrawn, "Already withdrawn");
 
         fundsWithdrawn = true;
+
         uint256 fee = (totalFundsRaised * feePercentage) / 10000;
         uint256 net = totalFundsRaised - fee;
 
@@ -77,6 +93,8 @@ contract crowdfunds {
         );
 
         uint256 amount = contributors[msg.sender];
+        require(amount > 0, "Already refunded");
+
         contributors[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
 
