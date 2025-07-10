@@ -15,6 +15,8 @@ import { LogoutButton } from "@/components/LogoutButton"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { fetchETHPriceInUSD } from "@/lib/prices"
+
 
 export default function CampaignsPage() {
   const { ready, authenticated } = usePrivy()
@@ -29,6 +31,13 @@ export default function CampaignsPage() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [userAddress, setUserAddress] = useState("")
+
+  const [ethPrice, setEthPrice] = useState(0)
+
+  useEffect(() => {
+   fetchETHPriceInUSD().then(setEthPrice)
+    }, [])
+
 
   useEffect(() => {
     if (!ready) return
@@ -252,6 +261,11 @@ export default function CampaignsPage() {
                               placeholder="0.01 ETH"
                               className="w-full p-2 rounded bg-slate-700 text-white mb-4"
                             />
+                            {contributionAmount && ethPrice > 0 && (
+                             <p className="text-blue-400 text-sm mt-1">
+                                  ≈ ${(parseFloat(contributionAmount) * ethPrice).toFixed(2)} USD
+                               </p>
+                               )}
                             <Button
                               onClick={handleContribute}
                               disabled={contributing || Number.parseFloat(contributionAmount) <= 0}

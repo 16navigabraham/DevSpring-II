@@ -3,6 +3,8 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { getCampaignDetails } from "@/lib/web3"
 import { fetchCampaignMetadata } from "@/lib/ipfs"
+import { fetchETHPriceInUSD } from "@/lib/prices"
+
 
 export default function CampaignDetailPage() {
   const { address } = useParams()
