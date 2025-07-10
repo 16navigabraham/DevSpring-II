@@ -32,6 +32,10 @@ export default function CreateCampaign() {
     githubRepo: "",
     liveSiteUrl: "",
   })
+  const handleInputChange = (field, value) => {
+  setFormData((prev) => ({ ...prev, [field]: value }))
+  updateValidation()
+}
   const [validationState, setValidationState] = useState({})
   const [formScore, setFormScore] = useState(0)
 
