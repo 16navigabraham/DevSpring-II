@@ -143,9 +143,9 @@ export default function CreateCampaign() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
         <Card className="glass-card border-emerald-500/20 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            {/* <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-4">
               <Image src="/SpringDev.png" alt="DevSpring" width={64} height={64} className="rounded-lg" />
-            </div> */}
+            </div>
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Campaign Created!</h2>
             <p className="text-blue-200 mb-4">Your campaign has been successfully deployed to the blockchain.</p>
@@ -182,9 +182,9 @@ export default function CreateCampaign() {
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full mb-6">
+            {/* <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full mb-6">
               <Image src="/SpringDev.png" alt="DevSpring" width={32} height={32} className="rounded" />
-            </div>
+            </div> */}
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-4">
               Launch Your Campaign
             </h1>
