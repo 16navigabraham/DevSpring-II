@@ -13,6 +13,7 @@ import { createCampaign, getFeePercentage } from "@/lib/web3"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { uploadCampaignMetadata } from "@/lib/ipfs"
 
 export default function CreateCampaign() {
   const { ready, authenticated, user } = usePrivy()
@@ -82,12 +83,7 @@ export default function CreateCampaign() {
     setFormScore(score)
   }
 
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    setTimeout(updateValidation, 100)
-  }
-
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!walletAddress) return
 
@@ -95,24 +91,30 @@ export default function CreateCampaign() {
     setError(null)
 
     try {
-      const campaignData = {
+      const metadata = {
         title: formData.title,
         description: formData.description,
-        goal: formData.goal,
-        duration: Number.parseInt(formData.duration),
         githubRepo: formData.githubRepo,
         liveSiteUrl: formData.liveSiteUrl,
-        creator: walletAddress,
+      }
+
+      const ipfsUrl = await uploadCampaignMetadata(metadata)
+
+      const campaignData = {
+        goal: formData.goal,
+        duration: Number.parseInt(formData.duration),
       }
 
       const result = await createCampaign(campaignData)
 
-      if (result) {
-        setSuccess(true)
-        setTimeout(() => {
-          router.push("/campaigns")
-        }, 2000)
+      if (result?.logs?.[0]?.address && ipfsUrl) {
+        localStorage.setItem(result.logs[0].address, ipfsUrl)
       }
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push("/campaigns")
+      }, 2000)
     } catch (error) {
       console.error("Error creating campaign:", error)
       setError(error.message || "Failed to create campaign")
@@ -120,6 +122,7 @@ export default function CreateCampaign() {
       setIsLoading(false)
     }
   }
+
 
   const isFormValid = formScore === 100 && walletAddress
 

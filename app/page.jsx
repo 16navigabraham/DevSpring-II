@@ -178,9 +178,9 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center">
             {/* Hero Section */}
             <div className="mb-12">
-              <div className="flex justify-center mb-6">
+              {/* <div className="flex justify-center mb-6">
                 <Image src="/SpringDev.png" alt="DevSpring" width={80} height={80} className="rounded-lg" />
-              </div>
+              </div> */}
               <h2 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent leading-tight">
                 Fund the Future
               </h2>

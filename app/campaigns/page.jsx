@@ -6,26 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
-  ArrowLeft,
-  Users,
-  Target,
-  ExternalLink,
-  Wallet,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertCircle,
-  RotateCcw,
+  ArrowLeft, Users, Target, ExternalLink, Wallet, RefreshCw,
+  CheckCircle, XCircle, Clock, AlertCircle, RotateCcw, Globe, Github
 } from "lucide-react"
-import { getAllCampaigns, contributeToCampaign,getContribution, refundContribution } from "@/lib/web3"
+import { getAllCampaigns, contributeToCampaign, getContribution, refundContribution } from "@/lib/web3"
+import { fetchCampaignMetadata } from "@/lib/ipfs"
 import { LogoutButton } from "@/components/LogoutButton"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 export default function CampaignsPage() {
-  const { ready, authenticated, user } = usePrivy()
+  const { ready, authenticated } = usePrivy()
   const router = useRouter()
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
@@ -52,32 +44,44 @@ export default function CampaignsPage() {
       setLoading(true)
       setError(null)
 
-      // Get user's wallet address
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: "eth_accounts" })
-        if (accounts.length > 0) {
-          setUserAddress(accounts[0])
+      const accounts = await window.ethereum?.request({ method: "eth_accounts" }) || []
+      const address = accounts[0]
+      if (!address) return
 
-          // Load all campaigns
-          const allCampaigns = await getAllCampaigns()
-          setCampaigns(allCampaigns)
+      setUserAddress(address)
 
-          // Load user contributions for each campaign
-          const contributions = {}
-          for (const campaign of allCampaigns) {
-            try {
-              const contribution = awaitgetContribution(campaign.address, accounts[0])
-              contributions[campaign.address] = contribution
-            } catch (error) {
-              console.error(`Error getting contribution for ${campaign.address}:`, error)
-              contributions[campaign.address] = "0"
+      const onchainCampaigns = await getAllCampaigns()
+
+      const enriched = await Promise.all(
+        onchainCampaigns.map(async (c) => {
+          let metadata = {}
+          try {
+            const ipfsUrl = localStorage.getItem(c.address)
+            if (ipfsUrl) {
+              metadata = await fetchCampaignMetadata(ipfsUrl)
             }
+          } catch (err) {
+            console.error(`Failed to fetch metadata for ${c.address}`, err)
           }
-          setUserContributions(contributions)
-        }
-      }
-    } catch (error) {
-      console.error("Error loading campaigns:", error)
+
+          const contribution = await getContribution(c.address, address)
+          return {
+            ...c,
+            ...metadata,
+            contribution: contribution || "0"
+          }
+        })
+      )
+
+      const contributionsMap = {}
+      enriched.forEach(c => {
+        contributionsMap[c.address] = c.contribution
+      })
+
+      setUserContributions(contributionsMap)
+      setCampaigns(enriched)
+    } catch (err) {
+      console.error("Error loading campaigns:", err)
       setError("Failed to load campaigns")
     } finally {
       setLoading(false)
@@ -86,376 +90,183 @@ export default function CampaignsPage() {
 
   const handleContribute = async () => {
     if (!selectedCampaign || !contributionAmount) return
-
     try {
       setContributing(true)
       setError(null)
-
       await contributeToCampaign(selectedCampaign.address, contributionAmount)
-
-      setSuccess(`Successfully contributed ${contributionAmount} ETH to ${selectedCampaign.title}!`)
-      setSelectedCampaign(null)
+      setSuccess(`Contributed ${contributionAmount} ETH to ${selectedCampaign.title}`)
       setContributionAmount("")
-
-      // Reload campaigns
+      setSelectedCampaign(null)
       await loadCampaigns()
-    } catch (error) {
-      console.error("Error contributing to campaign:", error)
-      setError(error.message || "Failed to contribute to campaign")
+    } catch (err) {
+      console.error(err)
+      setError(err.message || "Failed to contribute")
     } finally {
       setContributing(false)
     }
   }
 
-  const handleRefund = async (campaign) => {
+  const handleRefund = async (c) => {
     try {
       setRefunding(true)
-      setError(null)
-
-      await refundContribution(campaign.address)
-
-      setSuccess(`Successfully requested refund from ${campaign.title}!`)
-
-      // Reload campaigns
+      await refundContribution(c.address)
+      setSuccess(`Refund requested for ${c.title}`)
       await loadCampaigns()
-    } catch (error) {
-      console.error("Error requesting refund:", error)
-      setError(error.message || "Failed to request refund")
+    } catch (err) {
+      console.error(err)
+      setError(err.message || "Failed to refund")
     } finally {
       setRefunding(false)
     }
   }
 
-  const getProgressPercentage = (raised, goal) => {
-    return Math.min((Number.parseFloat(raised) / Number.parseFloat(goal)) * 100, 100)
-  }
-
   const getDaysLeft = (deadline) => {
     const now = new Date()
     const end = new Date(deadline)
-    const diffTime = end - now
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return Math.max(0, diffDays)
+    return Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)))
   }
 
-  const getCampaignStatus = (campaign) => {
-    const progress = getProgressPercentage(campaign.raised, campaign.goal)
-    const daysLeft = getDaysLeft(campaign.deadline)
+  const getProgress = (raised, goal) => Math.min((parseFloat(raised) / parseFloat(goal)) * 100, 100)
 
-    if (campaign.withdrawn) {
-      return { status: "withdrawn", label: "Withdrawn", icon: CheckCircle, color: "text-emerald-400" }
-    } else if (!campaign.isActive && campaign.isGoalMet) {
-      return { status: "success", label: "Successful", icon: CheckCircle, color: "text-emerald-400" }
-    } else if (!campaign.isActive && !campaign.isGoalMet) {
-      return { status: "failed", label: "Failed", icon: XCircle, color: "text-red-400" }
-    } else if (campaign.isActive && daysLeft > 0) {
-      return { status: "active", label: "Active", icon: Clock, color: "text-blue-400" }
-    } else {
-      return { status: "ended", label: "Ended", icon: XCircle, color: "text-gray-400" }
-    }
+  const canRefund = (c) => parseFloat(userContributions[c.address] || "0") > 0 &&
+    (c.canAutoRefund || (!c.isActive && !c.isGoalMet))
+
+  const campaignStatus = (c) => {
+    const progress = getProgress(c.raised, c.goal)
+    const days = getDaysLeft(c.deadline)
+
+    if (c.withdrawn) return { icon: CheckCircle, label: "Withdrawn", color: "text-emerald-400" }
+    if (!c.isActive && c.isGoalMet) return { icon: CheckCircle, label: "Successful", color: "text-emerald-400" }
+    if (!c.isActive && !c.isGoalMet) return { icon: XCircle, label: "Failed", color: "text-red-400" }
+    if (c.isActive && days > 0) return { icon: Clock, label: "Active", color: "text-blue-400" }
+    return { icon: XCircle, label: "Ended", color: "text-gray-400" }
   }
 
-  const canContribute = (campaign) => {
-    return campaign.isActive && getDaysLeft(campaign.deadline) > 0
-  }
-
-  const canRefund = (campaign) => {
-    const userContribution = Number.parseFloat(userContributions[campaign.address] || "0")
-    return userContribution > 0 && (campaign.canAutoRefund || (!campaign.isActive && !campaign.isGoalMet))
-  }
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
-      </div>
-    )
-  }
-
-  if (!authenticated) {
-    return null
-  }
+  if (!ready) return <div className="min-h-screen flex items-center justify-center text-white">Connecting wallet...</div>
+  if (!authenticated) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 text-white">
+      <div className="container mx-auto py-10 px-4">
+        <div className="flex justify-between items-center mb-6">
           <Link href="/">
-            <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
+            <Button variant="ghost" className="text-white"><ArrowLeft className="mr-2" />Back</Button>
           </Link>
-
-          <div className="flex space-x-3">
-            <Button
-              onClick={loadCampaigns}
-              variant="ghost"
-              className="text-blue-200 hover:text-white hover:bg-blue-800/20"
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-            <Link href="/dashboard">
-              <Button variant="ghost" className="text-blue-200 hover:text-white hover:bg-blue-800/20">
-                <Users className="w-4 h-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/create">
-              <Button className="btn-primary">Create Campaign</Button>
-            </Link>
+          <div className="flex gap-3">
+            <Button onClick={loadCampaigns}><RefreshCw className="mr-2" />Refresh</Button>
+            <Link href="/create"><Button>Create Campaign</Button></Link>
             <LogoutButton />
           </div>
         </div>
 
-        {/* Page Title */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-4">
-            <Image src="/SpringDev.png" alt="DevSpring" width={64} height={64} className="rounded-lg" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-4">
-            Explore Campaigns
-          </h1>
-          <p className="text-blue-200 text-lg max-w-2xl mx-auto">
-            Discover and support innovative projects from verified builders
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold text-center mb-8">Explore Campaigns</h1>
 
-        {/* Error/Success Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
+          <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg mb-6 flex items-start gap-3">
+            <AlertCircle className="text-red-400 mt-1" />
             <div>
-              <p className="text-red-300 font-medium text-sm">Error</p>
-              <p className="text-red-200 text-sm">{error}</p>
+              <p className="font-semibold text-red-300">Error</p>
+              <p className="text-red-200">{error}</p>
             </div>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
-            <p className="text-emerald-300 text-sm">{success}</p>
+          <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg mb-6 text-green-300">
+            {success}
           </div>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <p className="text-blue-200">Loading campaigns...</p>
-          </div>
-        )}
-
-        {/* No Campaigns State */}
         {!loading && campaigns.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Campaigns Available</h3>
-            <p className="text-blue-200 mb-6">Be the first to create a campaign!</p>
-            <Link href="/create">
-              <Button className="btn-primary">Create First Campaign</Button>
-            </Link>
+          <div className="text-center">
+            <Target className="mx-auto w-12 h-12 text-blue-400 mb-2" />
+            <p>No campaigns yet. <Link href="/create" className="underline text-blue-400">Create one</Link>.</p>
           </div>
         )}
 
-        {/* Campaigns Grid */}
+        {loading && <p className="text-center">Loading campaigns...</p>}
+
         {!loading && campaigns.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {campaigns.map((campaign) => {
-              const campaignStatus = getCampaignStatus(campaign)
-              const StatusIcon = campaignStatus.icon
-              const progress = getProgressPercentage(campaign.raised, campaign.goal)
-              const userContribution = userContributions[campaign.address] || "0"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {campaigns.map((c) => {
+              const status = campaignStatus(c)
+              const progress = getProgress(c.raised, c.goal)
+              const userContribution = userContributions[c.address] || "0"
 
               return (
-                <Card
-                  key={campaign.id}
-                  className="glass-card border-blue-500/20 hover:border-blue-400/40 transition-all duration-300"
-                >
+                <Card key={c.address} className="bg-slate-800 border border-slate-600">
                   <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-xl font-bold text-white">{campaign.title}</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <StatusIcon className={`w-5 h-5 ${campaignStatus.color}`} />
-                        <span className={`text-sm font-medium ${campaignStatus.color}`}>{campaignStatus.label}</span>
-                      </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <CardTitle className="text-lg font-bold">{c.title}</CardTitle>
+                      <span className={`${status.color} flex items-center gap-1 text-sm`}>
+                        <status.icon className="w-4 h-4" /> {status.label}
+                      </span>
                     </div>
-                    <p className="text-blue-200 text-sm line-clamp-3">{campaign.description}</p>
+                    <p className="text-slate-300 text-sm line-clamp-3">{c.description}</p>
                   </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    {/* Progress Bar */}
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-blue-200">Progress</span>
-                        <span className="text-emerald-400 font-medium">{progress.toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-slate-700 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="h-2 bg-slate-600 rounded-full">
+                      <div className="h-2 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full" style={{ width: `${progress}%` }}></div>
                     </div>
-
-                    {/* Campaign Stats */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <div className="text-blue-300">Raised</div>
-                        <div className="text-white font-semibold">{campaign.raised} ETH</div>
-                      </div>
-                      <div>
-                        <div className="text-blue-300">Goal</div>
-                        <div className="text-white font-semibold">{campaign.goal} ETH</div>
-                      </div>
-                      <div>
-                        <div className="text-blue-300">Days Left</div>
-                        <div className="text-white font-semibold">{getDaysLeft(campaign.deadline)}</div>
-                      </div>
-                      <div>
-                        <div className="text-blue-300">Your Contribution</div>
-                        <div className="text-white font-semibold">
-                          {Number.parseFloat(userContribution).toFixed(4)} ETH
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Raised: {c.raised} ETH</div>
+                      <div>Goal: {c.goal} ETH</div>
+                      <div>Days Left: {getDaysLeft(c.deadline)}</div>
+                      <div>Your Contribution: {parseFloat(userContribution).toFixed(4)} ETH</div>
                     </div>
-
-                    {/* Creator Info */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-blue-300">Creator:</span>
-                      <a
-                        href={`https://basescan.org/address/${campaign.creator}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 font-mono"
-                      >
-                        {campaign.creator.slice(0, 6)}...{campaign.creator.slice(-4)}
+                    <div className="flex gap-2 items-center text-xs">
+                      <ExternalLink className="w-4 h-4" />
+                      <a href={`https://basescan.org/address/${c.address}`} target="_blank" className="hover:underline">
+                        Contract
                       </a>
+                      {c.liveSiteUrl && (
+                        <>
+                          <Globe className="w-4 h-4 ml-4" />
+                          <a href={c.liveSiteUrl} target="_blank" className="hover:underline">Live site</a>
+                        </>
+                      )}
+                      {c.githubRepo && (
+                        <>
+                          <Github className="w-4 h-4 ml-4" />
+                          <a href={c.githubRepo} target="_blank" className="hover:underline">GitHub</a>
+                        </>
+                      )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2">
-                      {canContribute(campaign) && (
+                    <div className="flex gap-2 mt-4">
+                      {c.isActive && (
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button className="btn-primary flex-1" onClick={() => setSelectedCampaign(campaign)}>
-                              <Wallet className="w-4 h-4 mr-2" />
-                              Contribute
+                            <Button onClick={() => setSelectedCampaign(c)} className="flex-1">
+                              <Wallet className="w-4 h-4 mr-2" /> Contribute
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="glass-card border-blue-500/20">
+                          <DialogContent>
                             <DialogHeader>
-                              <DialogTitle className="text-xl font-bold text-white">
-                                Contribute to {selectedCampaign?.title}
-                              </DialogTitle>
+                              <DialogTitle>Contribute to {selectedCampaign?.title}</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <div className="text-blue-300">Goal</div>
-                                    <div className="text-white font-semibold">{selectedCampaign?.goal} ETH</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">Raised</div>
-                                    <div className="text-white font-semibold">{selectedCampaign?.raised} ETH</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">Days Left</div>
-                                    <div className="text-white font-semibold">
-                                      {selectedCampaign ? getDaysLeft(selectedCampaign.deadline) : 0}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-blue-300">Your Previous</div>
-                                    <div className="text-white font-semibold">
-                                      {selectedCampaign
-                                        ? Number.parseFloat(userContributions[selectedCampaign.address] || "0").toFixed(
-                                            4,
-                                          )
-                                        : 0}{" "}
-                                      ETH
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-blue-200 mb-2">
-                                  Contribution Amount (ETH)
-                                </label>
-                                <input
-                                  type="number"
-                                  step="0.001"
-                                  min="0"
-                                  value={contributionAmount}
-                                  onChange={(e) => setContributionAmount(e.target.value)}
-                                  placeholder="0.001"
-                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                              </div>
-
-                              <Button
-                                onClick={handleContribute}
-                                disabled={
-                                  contributing || !contributionAmount || Number.parseFloat(contributionAmount) <= 0
-                                }
-                                className="btn-primary w-full"
-                              >
-                                {contributing ? (
-                                  <div className="flex items-center">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Contributing...
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center">
-                                    <Wallet className="w-4 h-4 mr-2" />
-                                    Contribute {contributionAmount || "0"} ETH
-                                  </div>
-                                )}
-                              </Button>
-                            </div>
+                            <input
+                              type="number"
+                              value={contributionAmount}
+                              onChange={(e) => setContributionAmount(e.target.value)}
+                              placeholder="0.01 ETH"
+                              className="w-full p-2 rounded bg-slate-700 text-white mb-4"
+                            />
+                            <Button
+                              onClick={handleContribute}
+                              disabled={contributing || Number.parseFloat(contributionAmount) <= 0}
+                              className="w-full"
+                            >
+                              {contributing ? "Contributing..." : `Contribute ${contributionAmount || 0} ETH`}
+                            </Button>
                           </DialogContent>
                         </Dialog>
                       )}
-
-                      {canRefund(campaign) && (
-                        <Button
-                          onClick={() => handleRefund(campaign)}
-                          disabled={refunding}
-                          className="btn-secondary flex-1"
-                        >
-                          {refunding ? (
-                            <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Refunding...
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Refund
-                            </div>
-                          )}
+                      {canRefund(c) && (
+                        <Button onClick={() => handleRefund(c)} disabled={refunding} className="flex-1">
+                          <RotateCcw className="w-4 h-4 mr-2" /> Refund
                         </Button>
                       )}
-
-                      <a
-                        href={`https://basescan.org/address/${campaign.address}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button
-                          variant="outline"
-                          className="w-full text-blue-300 border-blue-500/20 hover:bg-blue-500/10 bg-transparent"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Contract
-                        </Button>
-                      </a>
                     </div>
                   </CardContent>
                 </Card>
@@ -467,3 +278,4 @@ export default function CampaignsPage() {
     </div>
   )
 }
+// This code is a React component for a campaigns page in a decentralized application.
