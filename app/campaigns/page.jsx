@@ -60,9 +60,9 @@ export default function CampaignsPage() {
         onchainCampaigns.map(async (c) => {
           let metadata = {}
           try {
-            const ipfsUrl = localStorage.getItem(c.address)
-            if (ipfsUrl) {
-              metadata = await fetchCampaignMetadata(ipfsUrl)
+          const ipfsUrl = c.metadataURI // ✅ read from contract, not localStorage
+         if (ipfsUrl) {
+           metadata = await fetchCampaignMetadata(ipfsUrl)
             }
           } catch (err) {
             console.error(`Failed to fetch metadata for ${c.address}`, err)
