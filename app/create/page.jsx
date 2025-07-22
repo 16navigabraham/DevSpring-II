@@ -154,7 +154,7 @@ const handleSubmit = async (e) => {
             </div> */}
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Campaign Created!</h2>
-            <p className="text-blue-200 mb-4">Your campaign has been successfully deployed to the blockchain.</p>
+            <p className="text-blue-200 mb-4">Your campaign has been successfully deployed onchain.</p>
             <p className="text-sm text-blue-300">Redirecting to campaigns page...</p>
           </CardContent>
         </Card>
@@ -195,7 +195,7 @@ const handleSubmit = async (e) => {
               Launch Your Campaign
             </h1>
             <p className="text-xl text-blue-200 max-w-2xl mx-auto">
-              Turn your innovative ideas into reality with decentralized crowdfunding
+              Turn your innovative ideas and project into reality with decentralized crowdfunding
             </p>
           </div>
 
@@ -257,7 +257,7 @@ const handleSubmit = async (e) => {
                   </div>
                   <div className="text-sm text-yellow-200">
                     <div className="font-medium text-white mb-1">• Auto-Refund</div>
-                    <div>Contributors get refunded if goal not met or you don't withdraw in time</div>
+                    <div>note: Contributors get refunded if goal not met or you don't withdraw in time</div>
                   </div>
                 </CardContent>
               </Card>
@@ -427,7 +427,7 @@ const handleSubmit = async (e) => {
                       ) : (
                         <div className="flex items-center justify-center">
                           <Rocket className="w-5 h-5 mr-2" />
-                          Launch Campaign
+                          Launch your project Campaign
                         </div>
                       )}
                     </Button>

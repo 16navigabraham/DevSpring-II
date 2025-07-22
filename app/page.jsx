@@ -86,7 +86,7 @@ function ActionButtons() {
             <Button className="btn-secondary group px-8 py-4 text-lg font-semibold">
               <span className="flex items-center">
                 <Users className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                Explore Campaigns
+                Explore available Campaigns
               </span>
             </Button>
           </Link>
@@ -95,7 +95,7 @@ function ActionButtons() {
         <Button onClick={login} className="btn-primary group relative overflow-hidden px-8 py-4 text-lg font-semibold">
           <span className="relative z-10 flex items-center">
             <Wallet className="w-5 h-5 mr-2" />
-            Connect Wallet to Start
+            Connect your Wallet to Start
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </span>
         </Button>
@@ -185,7 +185,7 @@ export default function LandingPage() {
                 Fund the Future
               </h2>
               <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Decentralized crowdfunding for verified builders. Connect creators with supporters through blockchain
+                Decentralized crowdfunding for verified builders. Connect builders with supporters through blockchain
                 technology on Base.
               </p>
             </div>
