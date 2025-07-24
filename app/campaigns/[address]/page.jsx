@@ -53,7 +53,7 @@ export default function CampaignDetailPage() {
   if (!campaign) {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <p>Campaign not found or failed to load.</p>
+        <p> failed to fetch Campaign.</p>
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function CampaignDetailPage() {
               )}
               {campaign.liveSiteUrl && (
                 <div className="md:col-span-2">
-                  <h4 className="font-semibold text-white">Live Site</h4>
+                  <h4 className="font-semibold text-white">Live URl</h4>
                   <Link href={campaign.liveSiteUrl} target="_blank" className="text-blue-400 hover:underline inline-flex items-center">
                     {campaign.liveSiteUrl}
                     <ExternalLink className="w-4 h-4 ml-1" />
