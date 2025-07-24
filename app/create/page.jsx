@@ -257,7 +257,7 @@ const handleSubmit = async (e) => {
                   </div>
                   <div className="text-sm text-yellow-200">
                     <div className="font-medium text-white mb-1">• Auto-Refund</div>
-                    <div>note: Contributors get refunded if goal not met or you don't withdraw in time</div>
+                    <div>Note: Contributors get refunded if goal not met or you don't withdraw in time</div>
                   </div>
                 </CardContent>
               </Card>
@@ -280,8 +280,8 @@ const handleSubmit = async (e) => {
                     <div>Complete all required campaign information</div>
                   </div>
                   <div className="text-sm text-blue-200">
-                    <div className="font-medium text-white mb-1">• Launch Campaign</div>
-                    <div>Deploy your campaign to the blockchain</div>
+                    <div className="font-medium text-white mb-1">• Launch your Campaign</div>
+                    <div>Deploy your campaign onchain</div>
                   </div>
                 </CardContent>
               </Card>
@@ -303,7 +303,7 @@ const handleSubmit = async (e) => {
                     <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 flex items-start space-x-3">
                       <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
                       <div>
-                        <p className="text-red-300 font-medium text-sm">Error Creating Campaign</p>
+                        <p className="text-red-300 font-medium text-sm">Error Creating your Campaign</p>
                         <p className="text-red-200 text-sm mt-1">{error}</p>
                       </div>
                     </div>
@@ -417,12 +417,12 @@ const handleSubmit = async (e) => {
                       ) : !walletAddress ? (
                         <div className="flex items-center">
                           <AlertCircle className="w-5 h-5 mr-2" />
-                          Connect Wallet First
+                          Connect your Wallet  First
                         </div>
                       ) : formScore < 100 ? (
                         <div className="flex items-center">
                           <FileText className="w-5 h-5 mr-2" />
-                          Complete Form ({formScore}%)
+                          Complete the  Form ({formScore}%)
                         </div>
                       ) : (
                         <div className="flex items-center justify-center">
