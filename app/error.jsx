@@ -19,7 +19,7 @@ export default function Error({ error, reset }) {
           <p className="text-red-200 mb-6">{error?.message || "An unexpected error occurred. Please try again."}</p>
           <Button onClick={reset} className="btn-primary">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Try Again
+            Please try Again
           </Button>
         </CardContent>
       </Card>

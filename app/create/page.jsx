@@ -232,7 +232,7 @@ const handleSubmit = async (e) => {
                     </div>
                     <div className={`flex items-center ${formScore === 100 ? "text-emerald-400" : "text-yellow-400"}`}>
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Form Complete
+                      Form Completed
                     </div>
                   </div>
                 </CardContent>

@@ -42,7 +42,7 @@ function AuthenticatedContent() {
       ) : (
         <Button onClick={login} className="btn-primary">
           <Wallet className="w-4 h-4 mr-2" />
-          Connect Wallet
+          Connect your Wallet
         </Button>
       )}
     </div>
@@ -95,7 +95,7 @@ function ActionButtons() {
         <Button onClick={login} className="btn-primary group relative overflow-hidden px-8 py-4 text-lg font-semibold">
           <span className="relative z-10 flex items-center">
             <Wallet className="w-5 h-5 mr-2" />
-            Connect your Wallet to Start
+            Connect your Wallet to GetStarted
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </span>
         </Button>
@@ -185,8 +185,8 @@ export default function LandingPage() {
                 Fund the Future
               </h2>
               <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Decentralized crowdfunding for verified builders. Connect builders with supporters through blockchain
-                technology on Base.
+                Decentralized crowdfunding for verified builders. Connect builders with supporters through the blockchain
+                 on Base.
               </p>
             </div>
 
@@ -210,7 +210,7 @@ export default function LandingPage() {
                 <CardContent className="p-6 text-center">
                   <TrendingUp className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
                   <div className="text-2xl font-bold text-white mb-1">{stats.totalRaised} ETH</div>
-                  <div className="text-blue-200 text-sm">Total Raised</div>
+                  <div className="text-blue-200 text-sm">Total Fund Raised</div>
                 </CardContent>
               </Card>
             </div>
