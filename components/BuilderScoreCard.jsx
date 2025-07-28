@@ -147,7 +147,7 @@ export function BuilderScoreCard({ walletAddress, onVerificationComplete }) {
                   <div className="flex items-center justify-center space-x-2 text-blue-300 text-sm">
                     <span>Powered by</span>
                     <ExternalLink className="w-4 h-4" />
-                    <span className="font-medium">Talent Protocol</span>
+                    <span className="font-medium">Talent Protocol & BASE</span>
                   </div>
 
                   <Button
@@ -163,12 +163,12 @@ export function BuilderScoreCard({ walletAddress, onVerificationComplete }) {
                     ) : builderData && !builderData.isEligible ? (
                       <div className="flex items-center">
                         <AlertCircle className="w-4 h-4 mr-2" />
-                        Score Too Low
+                        Your Score is Too Low
                       </div>
                     ) : (
                       <div className="flex items-center">
                         <Shield className="w-4 h-4 mr-2" />
-                        Verify Eligibility
+                        Verify Your Eligibility
                       </div>
                     )}
                   </Button>
@@ -195,7 +195,7 @@ export function BuilderScoreCard({ walletAddress, onVerificationComplete }) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-emerald-400">{builderData.score}</div>
-                <div className="text-sm text-blue-300">Total Score</div>
+                <div className="text-sm text-blue-300">Your total Score</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-semibold text-blue-400">{builderData.breakdown.github || 0}</div>
