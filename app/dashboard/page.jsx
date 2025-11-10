@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -33,7 +33,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 export default function DashboardPage() {
-  const { ready, authenticated, user } = usePrivy()
+  const { ready, authenticated, user } = useReown()
   const router = useRouter()
   const [campaigns, setCampaigns] = useState([])
   const [userCampaigns, setUserCampaigns] = useState([])

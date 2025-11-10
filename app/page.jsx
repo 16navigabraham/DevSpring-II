@@ -1,6 +1,6 @@
 "use client"
 
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -67,7 +67,7 @@ const StatCard = ({ icon, value, label }) => (
 /*  AuthenticatedContent                                              */
 /* ------------------------------------------------------------------ */
 function AuthenticatedContent() {
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login } = useReown()
 
   if (!ready) {
     return (
@@ -105,7 +105,7 @@ function AuthenticatedContent() {
 /*  ActionButtons                                                     */
 /* ------------------------------------------------------------------ */
 function ActionButtons() {
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login } = useReown()
 
   if (!ready) {
     return (

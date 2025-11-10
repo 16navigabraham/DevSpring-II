@@ -1,12 +1,12 @@
 "use client"
 
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function LogoutButton({ variant = "ghost", className = "", showText = true }) {
-  const { logout, authenticated } = usePrivy()
+  const { logout, authenticated } = useReown()
   const router = useRouter()
 
   const handleLogout = async () => {

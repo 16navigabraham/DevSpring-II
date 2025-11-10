@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Rocket, Calendar, Target, FileText, Users, CheckCircle, AlertCircle, Info } from "lucide-react"
@@ -16,7 +16,7 @@ import Image from "next/image"
 import { uploadCampaignMetadata } from "@/lib/ipfs"
 
 export default function CreateCampaign() {
-  const { ready, authenticated, user } = usePrivy()
+  const { ready, authenticated, user } = useReown()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [walletAddress, setWalletAddress] = useState(null)

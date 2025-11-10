@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation"
 import { fetchETHPriceInUSD } from "@/lib/prices"
 
 export default function CampaignsPage() {
-  const { ready, authenticated } = usePrivy()
+  const { ready, authenticated } = useReown()
   const router = useRouter()
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)

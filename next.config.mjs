@@ -27,7 +27,7 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   // Ensure proper handling of dynamic imports
-  transpilePackages: ['@privy-io/react-auth'],
+  transpilePackages: ['@reown/appkit', '@reown/appkit-adapter-wagmi'],
 }
 
 export default nextConfig

@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePrivy } from "@privy-io/react-auth"
+import { useReown } from "@/lib/reown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { switchToBase } from "@/lib/web3"
 import { Wallet, AlertCircle, CheckCircle, ExternalLink } from "lucide-react"
 
 export function WalletConnection({ onWalletConnected }) {
-  const { ready, authenticated, user, connectWallet } = usePrivy()
+  const { ready, authenticated, user, connectWallet } = useReown()
   const [walletAddress, setWalletAddress] = useState(null)
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)

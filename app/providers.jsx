@@ -1,26 +1,10 @@
 "use client"
 
-import { PrivyProvider } from "@privy-io/react-auth"
-import { base } from "viem/chains"
+import { ReownProvider } from "@/lib/reown"
 
 export function Providers({ children }) {
-  return (
-    <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
-      config={{
-        appearance: {
-          theme: "dark",
-          accentColor: "#3B82F6",
-        },
-        embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-        },
-        loginMethods: ["email", "wallet"],
-        defaultChain: base,
-        supportedChains: [base],
-      }}
-    >
-      {children}
-    </PrivyProvider>
-  )
+  // The Reown adapter reads NEXT_PUBLIC_REOWN_APP_ID or falls back to
+  // NEXT_PUBLIC_PRIVY_APP_ID for compatibility. Configure any provider-level
+  // options inside `lib/reown.js` if the real SDK requires them.
+  return <ReownProvider>{children}</ReownProvider>
 }
