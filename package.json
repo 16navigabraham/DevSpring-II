@@ -38,8 +38,11 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@reown/appkit": "^1.8.13",
+    "@reown/appkit-adapter-wagmi": "^1.8.13",
     "@solana/spl-token": "latest",
     "@solana/web3.js": "latest",
+    "@tanstack/react-query": "^5.90.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
@@ -60,7 +63,8 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
-    "viem": "latest"
+    "viem": "^2.38.6",
+    "wagmi": "^2.19.2"
   },
   "devDependencies": {
     "@types/node": "^22",
